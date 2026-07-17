@@ -1,3 +1,6 @@
+// Azure Function App URL (Backend API)
+const API_BASE_URL = 'https://supreme-ipo-api-123.azurewebsites.net/api';
+
 document.addEventListener('DOMContentLoaded', () => {
     fetchIPOs();
 
@@ -9,7 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function fetchIPOs() {
     try {
-        const response = await fetch('/api/ipos');
+        const response = await fetch(`${API_BASE_URL}/ipos`);
         if (!response.ok) throw new Error("Backend API not responding");
         const data = await response.json();
         
@@ -55,7 +58,7 @@ async function fetchIPODetails(ipoName) {
         document.getElementById('ipo-title').innerText = ipoName;
         document.getElementById('ipo-content').innerHTML = "<i>Fetching AI analysis...</i>";
         
-        const response = await fetch(`/api/ipos/${encodeURIComponent(ipoName)}`);
+        const response = await fetch(`${API_BASE_URL}/ipos/${encodeURIComponent(ipoName)}`);
         if (!response.ok) throw new Error("Failed to load details");
         const data = await response.json();
         
