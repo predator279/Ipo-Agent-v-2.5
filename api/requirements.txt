@@ -1,0 +1,5 @@
+azure-functions
+supabase
+qdrant-client
+langchain-google-genai
+python-dotenv

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supreme IPO Insights | AI Analysis</title>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="background-glow"></div>
+    
+    <header class="glass-header">
+        <div class="header-content">
+            <h1>Supreme <span>IPO Insights</span></h1>
+            <p>AI-driven analysis extracted directly from Red Herring Prospectuses.</p>
+        </div>
+    </header>
+    
+    <main class="container">
+        <!-- Loader -->
+        <div id="loader" class="loader-container">
+            <div class="spinner"></div>
+            <p>Fetching latest IPO data...</p>
+        </div>
+
+        <!-- IPO List Section -->
+        <section id="ipo-list-section" class="hidden">
+            <div class="section-header">
+                <h2>Available IPOs</h2>
+                <div class="badge">Live Updates</div>
+            </div>
+            <div id="ipo-list" class="grid-container">
+                <!-- Cards injected here -->
+            </div>
+        </section>
+
+        <!-- IPO Details Section -->
+        <section id="ipo-details-section" class="hidden">
+            <button id="back-btn" class="glass-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z"/>
+                </svg>
+                Back to Dashboard
+            </button>
+            <div class="details-card glass-panel">
+                <h2 id="ipo-title">IPO Title</h2>
+                <div id="ipo-content" class="json-display"></div>
+            </div>
+        </section>
+    </main>
+    
+    <script src="script.js"></script>
+</body>
+</html>

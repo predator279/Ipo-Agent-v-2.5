@@ -1,0 +1,54 @@
+# .gitignore for IPO Analysis Agent
+
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+
+# ── Virtual environments ──────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+
+# ── Secrets (NEVER commit these) ─────────────────────────────────────────────
+.streamlit/secrets.toml
+*.env
+.env
+.env.*
+
+# ── Local vector stores (large, ephemeral) ────────────────────────────────────
+ipo_vectorstores/
+chroma_db/
+
+# ── Downloaded PDFs (large files, regenerable) ───────────────────────────────
+IPO_Documents/
+SEBI_RHPs/
+*.zip
+
+# ── Local analysis cache (replaced by Supabase) ──────────────────────────────
+ipo_analysis_cache/
+analysis_results/
+
+# ── IDE / editor ─────────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# ── OS files ──────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+logs/
