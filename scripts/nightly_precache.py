@@ -6,6 +6,9 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from ipo_fetcher import fetch_all_ipo_data_separated
 from supabase_client import get_supabase, register_ipo_cached, save_profile
+from chatbot_agent import process_and_store_document
+from rhp_agent import analyze_rhp
+import time
 
 def run_nightly():
     print("Starting Nightly Pre-cacher...")
@@ -42,18 +45,31 @@ def run_nightly():
                 
             print(f"[{ipo_name}] Not found in cache. Starting processing...")
             
-            # ---------------------------------------------------------
-            # TODO: Implement full agentic pipeline here
-            # 1. Download RHP
+            # 1. Download RHP and Embed into Qdrant Cloud
+            try:
+                print(f"[{ipo_name}] Embedding into Qdrant...")
+                process_and_store_document(ipo_name, symbol=symbol)
+            except Exception as e:
+                print(f"[{ipo_name}] Failed to embed document: {e}")
+                
             # 2. Extract Document Profile
-            # 3. Embed into Qdrant Cloud
-            # 4. Save to Supabase (ipo_profiles & ipo_cache_registry)
-            # ---------------------------------------------------------
-            
-            # Placeholder for saving
-            # save_profile(ipo_name, symbol, {"dummy": "data"})
-            # register_ipo_cached(ipo_name, symbol, status, protected=True)
-            print(f"[{ipo_name}] Placeholder: Processing successful.")
+            try:
+                print(f"[{ipo_name}] Extracting Document Profile...")
+                profile_dict = analyze_rhp(ipo_name)
+            except Exception as e:
+                print(f"[{ipo_name}] Failed to analyze RHP: {e}")
+                profile_dict = None
+                
+            # 3. Save to Supabase
+            if profile_dict:
+                save_profile(ipo_name, symbol, profile_dict)
+                register_ipo_cached(ipo_name, symbol, status, protected=True)
+                print(f"[{ipo_name}] Processing and caching successful.")
+            else:
+                print(f"[{ipo_name}] Extraction failed, did not save to Supabase.")
+                
+            # Rate limit the LLM calls slightly to be safe
+            time.sleep(2)
             
     # TODO: Implement LRU eviction on Qdrant Cloud if capacity > 85%
     # This involves fetching Qdrant storage usage, and if high, deleting

@@ -634,11 +634,11 @@ def find_and_download_all_pdfs(
 # ==============================================================================
 # OPTIONAL — LLM analysis of the downloaded RHP (unchanged from v1)
 # ==============================================================================
-def analyze_rhp(ipo_name: str) -> None:
+def analyze_rhp(ipo_name: str) -> dict | None:
     local_path = find_and_download_pdf(ipo_name)
     if not local_path:
         print("❌ [RHP Agent] No document found for analysis.")
-        return
+        return None
 
     try:
         print("[RHP Agent] Loading PDF for analysis…")
@@ -694,6 +694,8 @@ CONTEXT:
         with open(file_path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
         print(f"✅ [RHP Agent] Analysis saved to {file_path}")
+        return data
 
     except Exception as exc:
         print(f"❌ [RHP Agent] Analysis failed: {exc}")
+        return None
