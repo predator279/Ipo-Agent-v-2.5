@@ -41,6 +41,7 @@ PyMuPDF>=1.24.0
 
 # ── Web scraping / HTTP ────────────────────────────────────────────────────
 requests>=2.32.0
+curl-cffi>=0.7.0
 beautifulsoup4>=4.12.0
 praw>=8.0.2
 feedparser>=6.0.11

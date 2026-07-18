@@ -1,6 +1,7 @@
 # ipo_fetcher.py (v3 — Upstox API primary, NSE fallback, unified schema)
 
 import requests
+from curl_cffi import requests as curl_requests
 import pandas as pd
 import streamlit as st
 from bs4 import BeautifulSoup
@@ -31,10 +32,10 @@ def fetch_all_ipo_data_separated() -> Dict[str, pd.DataFrame]:
         "Past": "https://www.nseindia.com/api/public-past-issues"
     }
 
-    session = requests.Session()
+    session = curl_requests.Session(impersonate="chrome")
     try:
         session.get("https://www.nseindia.com", headers=headers, timeout=10)
-    except requests.exceptions.RequestException as e:
+    except Exception as e:
         print(f"NSE Session Error: {e}")
         return {}
 
@@ -46,7 +47,7 @@ def fetch_all_ipo_data_separated() -> Dict[str, pd.DataFrame]:
             data = resp.json()
             if data:
                 ipo_data_dict[status] = pd.DataFrame(data)
-        except requests.exceptions.RequestException as e:
+        except Exception as e:
             print(f"⚠️ Failed to fetch {status} IPOs from NSE: {e}")
             ipo_data_dict[status] = pd.DataFrame()
 
@@ -180,7 +181,7 @@ def fetch_nse_ipo_detail(symbol: str, series: str = "EQ") -> dict:
         f"https://www.nseindia.com/api/ipo-detail"
         f"?symbol={symbol}&series={series}"
     )
-    session = requests.Session()
+    session = curl_requests.Session(impersonate="chrome")
     try:
         # Establish NSE session cookie by visiting the homepage first
         session.get("https://www.nseindia.com", headers=headers, timeout=10)
@@ -212,7 +213,7 @@ def get_rhp_url_from_nse(symbol: str) -> str:
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
             "Referer": "https://www.nseindia.com/",
         }
-        resp = requests.head(direct_url, headers=headers, timeout=8)
+        resp = curl_requests.head(direct_url, headers=headers, timeout=8, impersonate="chrome")
         if resp.status_code == 200:
             print(f"[ipo_fetcher] Direct NSE zip URL confirmed: {direct_url}")
             return direct_url
