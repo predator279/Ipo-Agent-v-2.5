@@ -17,9 +17,18 @@ def get_ipos(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Python HTTP trigger function processed a request for IPOs.')
     try:
         sb = get_supabase()
-        # Fetch cached IPO profiles
-        response = sb.table("ipo_profiles").select("ipo_name, symbol, updated_at").execute()
-        return func.HttpResponse(json.dumps(response.data), mimetype="application/json")
+        
+        registry_res = sb.table("ipo_cache_registry").select("ipo_name, symbol, status").execute()
+        profiles_res = sb.table("ipo_profiles").select("ipo_name, updated_at").execute()
+        
+        profiles_dict = {row["ipo_name"]: row.get("updated_at") for row in profiles_res.data}
+        
+        merged_data = []
+        for row in registry_res.data:
+            row["updated_at"] = profiles_dict.get(row["ipo_name"])
+            merged_data.append(row)
+            
+        return func.HttpResponse(json.dumps(merged_data), mimetype="application/json")
     except Exception as e:
         logging.error(f"Error fetching IPOs: {e}")
         return func.HttpResponse("Error fetching IPOs", status_code=500)

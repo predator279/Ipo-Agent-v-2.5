@@ -490,6 +490,32 @@ def find_and_download_all_pdfs(
         # Crude heuristic: take first word uppercased
         symbol = ipo_name.split()[0].upper() if ipo_name else ""
 
+    # ── Check Local Cache First ──────────────────────────────────────────
+    if os.path.exists(dest_folder):
+        local_files = []
+        for f in os.listdir(dest_folder):
+            if not f.lower().endswith(".pdf"):
+                continue
+            
+            f_lower = f.lower()
+            # Match if the file contains the symbol OR the ipo name
+            symbol_match = bool(symbol and symbol.lower() in f_lower)
+            # Take the first 3 words of the IPO name to match against filenames to avoid issues with long names
+            name_prefix = " ".join(ipo_name.split()[:3]).lower()
+            name_match = bool(name_prefix and name_prefix in f_lower)
+            
+            if symbol_match or name_match:
+                path = os.path.join(dest_folder, f)
+                size = os.path.getsize(path)
+                if size >= MIN_REAL_DOC_BYTES:
+                    score = 1 if "rhp" in f_lower else 0
+                    local_files.append({"local_path": path, "_size": size, "_score": score})
+                    
+        if local_files:
+            local_files.sort(key=lambda x: (x["_score"], x["_size"]), reverse=True)
+            print(f"   ✅ Found existing local PDF in cache: {local_files[0]['local_path']} ({local_files[0]['_size'] / 1_048_576:.1f} MB)")
+            return [f["local_path"] for f in local_files]
+
     # ── Source 1: Upstox direct RHP link ─────────────────────────────────
     if rhp_url:
         print(f"→ Trying Upstox direct RHP link: {rhp_url[:80]}…")
