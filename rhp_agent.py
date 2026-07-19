@@ -456,13 +456,13 @@ def _try_nse_zip_download(symbol: str, dest_folder: str) -> Optional[str]:
 # ==============================================================================
 # PUBLIC API — find and download ALL PDFs, return list of paths
 # ==============================================================================
-def find_and_download_pdf(ipo_name: str) -> Optional[str]:
+def find_and_download_pdf(ipo_name: str, symbol: str = "") -> Optional[str]:
     """
     Backwards-compatible single-path wrapper around find_and_download_all_pdfs().
     Returns the path of the LARGEST downloaded PDF (most likely the full RHP),
     or None if nothing was found.
     """
-    paths = find_and_download_all_pdfs(ipo_name)
+    paths = find_and_download_all_pdfs(ipo_name, symbol=symbol)
     return paths[0] if paths else None
 
 
@@ -634,8 +634,12 @@ def find_and_download_all_pdfs(
 # ==============================================================================
 # OPTIONAL — LLM analysis of the downloaded RHP (unchanged from v1)
 # ==============================================================================
-def analyze_rhp(ipo_name: str) -> dict | None:
-    local_path = find_and_download_pdf(ipo_name)
+def analyze_rhp(ipo_name: str, symbol: str = "") -> dict | None:
+    """
+    Finds the RHP PDF, extracts pages, runs OCR, and extracts standard JSON.
+    Returns the parsed dictionary.
+    """
+    local_path = find_and_download_pdf(ipo_name, symbol=symbol)
     if not local_path:
         print("❌ [RHP Agent] No document found for analysis.")
         return None

@@ -427,22 +427,28 @@ def invoke_model(llm, prompt_chain, **invoke_kwargs) -> str:
     Supports direct prompt, ChatPromptTemplate, or (system,user) tuples.
     """
     try:
+        def _get_str(res):
+            val = getattr(res, "content", str(res))
+            if isinstance(val, list):
+                return " ".join(str(x.get("text", x) if isinstance(x, dict) else x) for x in val)
+            return str(val)
+
         # Case 1: If it's a list of tuples -> treat as chat messages
         if isinstance(prompt_chain, (list, tuple)) and all(isinstance(x, (list, tuple)) for x in prompt_chain):
             messages = [{"role": role, "content": content} for role, content in prompt_chain]
             res = llm.invoke(messages)
-            return getattr(res, "content", str(res))
+            return _get_str(res)
 
         # Case 2: If it's a LangChain chain (like prompt | llm)
         if hasattr(prompt_chain, "invoke"):
             res = prompt_chain.invoke(invoke_kwargs)
-            return getattr(res, "content", str(res))
+            return _get_str(res)
 
         # Case 3: If it’s a plain text prompt
         if isinstance(prompt_chain, str):
             if hasattr(llm, "invoke"):
                 res = llm.invoke(prompt_chain)
-                return getattr(res, "content", str(res))
+                return _get_str(res)
             if hasattr(llm, "predict"):
                 return llm.predict(prompt_chain)
             if hasattr(llm, "generate"):

@@ -12,7 +12,7 @@ from typing import Optional
 
 # Vector store & embeddings
 from langchain_chroma import Chroma
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
 
 # BM25 sparse retriever
 try:
@@ -77,12 +77,13 @@ def _get_vectorstore(collection_name: str, embeddings, create: bool = False, doc
         try:
             from langchain_qdrant import QdrantVectorStore
             from qdrant_client import QdrantClient
-            client = QdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY)
+            client = QdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY, timeout=60)
             if create and docs:
                 return QdrantVectorStore.from_documents(
                     docs, embeddings,
                     url=QDRANT_URL, api_key=QDRANT_API_KEY,
                     collection_name=collection_name,
+                    timeout=60,
                 )
             else:
                 return QdrantVectorStore(
@@ -91,6 +92,9 @@ def _get_vectorstore(collection_name: str, embeddings, create: bool = False, doc
                     embedding=embeddings,
                 )
         except Exception as e:
+            if os.getenv("STRICT_QDRANT", "false").lower() == "true":
+                print(f"❌ Qdrant init failed ({e}) and STRICT_QDRANT is true. Aborting.")
+                raise
             print(f"⚠️  Qdrant init failed ({e}), falling back to ChromaDB.")
 
     # Local ChromaDB (dev default)
@@ -135,28 +139,43 @@ def process_and_store_document(
     # ── load from cache (Qdrant or ChromaDB) ───────────────────────────────────
     if _ipo_is_cached(ipo_name):
         print(f"✅ Vector store for '{ipo_name}' found in cache. Loading…")
-        embeddings = HuggingFaceEmbeddings(
-            model_name=EMBEDDING_MODEL,
-            encode_kwargs={"batch_size": 256, "normalize_embeddings": True},
-            model_kwargs={"device": "cpu"},
-        )
+        if st_progress_bar:
+            st_progress_bar.progress(0.65, text="Generating embeddings...")
+        embeddings = FastEmbedEmbeddings(model_name="BAAI/bge-small-en-v1.5")
         return _get_vectorstore(_safe_name(ipo_name), embeddings)
 
     print(f"🚧 No cache for '{ipo_name}'. Starting full pipeline.")
 
-    # ── download all PDFs ─────────────────────────────────────────────────────
-    if st_progress_bar:
-        st_progress_bar.progress(0.02, text="Searching for RHP/DRHP documents…")
+    import pickle
+    cache_dir = "parsed_chunks_cache"
+    os.makedirs(cache_dir, exist_ok=True)
+    cache_file = os.path.join(cache_dir, f"{_safe_name(ipo_name)}.pkl")
 
-    pdf_paths = find_and_download_all_pdfs(ipo_name, symbol=symbol, rhp_url=rhp_url)
-    if not pdf_paths:
-        print(f"❌ No documents found for {ipo_name}.")
-        return None
-
-    print(f"📚 Processing {len(pdf_paths)} document(s).")
-
-    # ── parse every PDF ───────────────────────────────────────────────────────
     all_docs = []
+    pdf_paths = []
+
+    if os.path.exists(cache_file):
+        print(f"✅ Found local parsed chunks cache. Skipping download/parse.")
+        try:
+            with open(cache_file, "rb") as f:
+                all_docs = pickle.load(f)
+        except Exception as e:
+            print(f"⚠️ Failed to load pickle cache: {e}")
+            all_docs = []
+
+    if not all_docs:
+        # ── download all PDFs ─────────────────────────────────────────────────────
+        if st_progress_bar:
+            st_progress_bar.progress(0.02, text="Searching for RHP/DRHP documents…")
+
+        pdf_paths = find_and_download_all_pdfs(ipo_name, symbol=symbol, rhp_url=rhp_url)
+        if not pdf_paths:
+            print(f"❌ No documents found for {ipo_name}.")
+            return None
+
+        print(f"📚 Processing {len(pdf_paths)} document(s).")
+
+        # ── parse every PDF ───────────────────────────────────────────────────────
     for doc_idx, pdf_path in enumerate(pdf_paths):
         doc_label = os.path.basename(pdf_path)
         size_mb   = os.path.getsize(pdf_path) / 1_048_576
@@ -193,20 +212,25 @@ def process_and_store_document(
         print(f"❌ No content extracted from any document for {ipo_name}.")
         return None
 
+    if pdf_paths:
+        try:
+            with open(cache_file, "wb") as f:
+                pickle.dump(all_docs, f)
+            print(f"✅ Saved parsed chunks to local cache.")
+        except Exception as e:
+            print(f"⚠️ Failed to save pickle cache: {e}")
+
     total_chunks  = len(all_docs)
     total_tables  = sum(1 for d in all_docs if d.metadata.get("type") == "table")
-    print(f"\n✅ Total: {total_chunks} chunks ({total_tables} tables) across {len(pdf_paths)} file(s).")
+    print(f"\n✅ Total: {total_chunks} chunks ({total_tables} tables) across {len(pdf_paths) if pdf_paths else 'cache'} file(s).")
 
     if st_progress_bar:
         st_progress_bar.progress(0.60, text=f"Embedding {total_chunks} chunks into vectorstore…")
 
     # ── embed in batches ──────────────────────────────────────────────────────
-    embeddings = HuggingFaceEmbeddings(
-        model_name=EMBEDDING_MODEL,
-        encode_kwargs={"batch_size": 256, "normalize_embeddings": True},
-        model_kwargs={"device": "cpu"},
-    )
-    batch_size  = 256   # 4× faster than the old default of 64
+    import time
+    embeddings = FastEmbedEmbeddings(model_name="BAAI/bge-small-en-v1.5")
+    batch_size  = 25
     vectorstore = None
 
     for i in range(0, total_chunks, batch_size):
@@ -217,6 +241,8 @@ def process_and_store_document(
             )
         else:
             vectorstore.add_documents(documents=batch)
+            
+        time.sleep(0.5)
 
         if st_progress_bar:
             embed_frac = min((i + batch_size) / total_chunks, 1.0)

@@ -2,4 +2,9 @@ azure-functions
 supabase
 qdrant-client
 langchain-google-genai
+langchain-groq
+langchain-qdrant
+langchain-core
+langchain-classic
 python-dotenv
+fastembed>=0.2.7
