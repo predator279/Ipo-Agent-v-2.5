@@ -8,3 +8,4 @@ langchain-core
 langchain-classic
 python-dotenv
 fastembed>=0.2.7
+langchain-community

@@ -2,6 +2,7 @@ import azure.functions as func
 import logging
 import json
 import os
+os.environ["FASTEMBED_CACHE_PATH"] = "/tmp/fastembed_cache"
 from supabase import create_client, Client
 from langchain_qdrant import QdrantVectorStore
 from qdrant_client import QdrantClient
