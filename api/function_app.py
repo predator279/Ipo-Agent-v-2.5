@@ -61,7 +61,10 @@ def get_rag_chain(ipo_name: str):
         llm = ChatGroq(temperature=0, model_name="llama-3.3-70b-versatile", groq_api_key=groq_key)
     else:
         from langchain_google_genai import ChatGoogleGenerativeAI
-        llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=0)
+        gemini_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+        if not gemini_key:
+            raise ValueError("Missing LLM API Key: Please set GROQ_API_KEY or GEMINI_API_KEY in Azure App Settings (Environment Variables).")
+        llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=0, api_key=gemini_key)
 
     # Init Vectorstore
     embeddings = FastEmbedEmbeddings(model_name="BAAI/bge-small-en-v1.5")
