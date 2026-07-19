@@ -4,13 +4,6 @@ import json
 import os
 os.environ["FASTEMBED_CACHE_PATH"] = "/tmp/fastembed_cache"
 from supabase import create_client, Client
-from langchain_qdrant import QdrantVectorStore
-from qdrant_client import QdrantClient
-from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
-from langchain_classic.chains import create_history_aware_retriever, create_retrieval_chain
-from langchain_classic.chains.combine_documents import create_stuff_documents_chain
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.messages import AIMessage, HumanMessage
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
@@ -51,6 +44,13 @@ def _safe_name(ipo_name: str) -> str:
     return "".join(c for c in ipo_name if c.isalnum() or c in " -_").rstrip()
 
 def get_rag_chain(ipo_name: str):
+    from langchain_qdrant import QdrantVectorStore
+    from qdrant_client import QdrantClient
+    from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
+    from langchain_classic.chains import create_history_aware_retriever, create_retrieval_chain
+    from langchain_classic.chains.combine_documents import create_stuff_documents_chain
+    from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+
     qdrant_url = os.environ.get("QDRANT_URL")
     qdrant_api_key = os.environ.get("QDRANT_API_KEY")
     
@@ -122,6 +122,7 @@ def chat(req: func.HttpRequest) -> func.HttpResponse:
         if not ipo_name or not message:
             return func.HttpResponse("Missing ipo_name or message", status_code=400)
             
+        from langchain_core.messages import AIMessage, HumanMessage
         chat_history = []
         for h in history_data:
             if h.get('role') == 'user':
