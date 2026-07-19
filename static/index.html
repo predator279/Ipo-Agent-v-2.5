@@ -8,6 +8,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <!-- Chart.js for graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -27,110 +29,158 @@
             <p>Fetching latest IPO data...</p>
         </div>
 
-        <!-- IPO List Section -->
+        <!-- IPO List Section (Home) -->
         <section id="ipo-list-section" class="hidden">
             <div class="section-header">
-                <h2>Available IPOs</h2>
+                <h2>Live IPO Market</h2>
                 <div class="badge" id="sync-date">Data last synced: Loading...</div>
             </div>
             
-            <h3 class="category-title">Current</h3>
-            <div id="current-ipos" class="grid-container"></div>
-            
-            <h3 class="category-title">Upcoming</h3>
-            <div id="upcoming-ipos" class="grid-container"></div>
-            
-            <h3 class="category-title">Past</h3>
-            <div id="past-ipos" class="grid-container"></div>
+            <!-- Tab Navigation -->
+            <div class="tabs-nav">
+                <button class="tab-btn active" data-tab="current-tab">🔥 Current</button>
+                <button class="tab-btn" data-tab="upcoming-tab">⏳ Upcoming</button>
+                <button class="tab-btn" data-tab="past-tab">✅ Past</button>
+            </div>
+
+            <!-- Tab Content: Current -->
+            <div id="current-tab" class="tab-content active">
+                <div class="table-responsive glass-panel">
+                    <table class="ipo-table" id="current-table">
+                        <thead>
+                            <tr>
+                                <th>Company Name</th><th>Symbol</th><th>Security type</th><th>Issue Price</th>
+                                <th>Issue Start Date</th><th>Issue End Date</th><th>Status</th><th>No of Shares Offered</th>
+                            </tr>
+                        </thead>
+                        <tbody id="current-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Tab Content: Upcoming -->
+            <div id="upcoming-tab" class="tab-content">
+                <div class="table-responsive glass-panel">
+                    <table class="ipo-table" id="upcoming-table">
+                        <thead>
+                            <tr>
+                                <th>Company Name</th><th>Symbol</th><th>Security Type</th><th>Issue Price</th>
+                                <th>ISSUE START DATE</th><th>ISSUE END DATE</th><th>STATUS</th><th>ISSUE SIZE</th>
+                            </tr>
+                        </thead>
+                        <tbody id="upcoming-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Tab Content: Past -->
+            <div id="past-tab" class="tab-content">
+                <div class="table-responsive glass-panel">
+                    <table class="ipo-table" id="past-table">
+                        <thead>
+                            <tr>
+                                <th>Company Name</th><th>Symbol</th><th>Security Type</th><th>Issue Price</th>
+                                <th>Price Range</th><th>IPO START DATE</th><th>IPO END DATE</th><th>Listing Date</th>
+                            </tr>
+                        </thead>
+                        <tbody id="past-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
         </section>
 
-        <!-- IPO Details Section -->
+        <!-- IPO Details Section (Dashboard) -->
         <section id="ipo-details-section" class="hidden">
-            <button id="back-btn" class="glass-btn">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                    <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z"/>
-                </svg>
-                Back to Dashboard
-            </button>
+            <div class="dashboard-header-bar">
+                <button id="back-btn" class="glass-btn outline">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z"/>
+                    </svg>
+                    Back to Market
+                </button>
+                <button id="open-chat-btn" class="glass-btn primary">
+                    💬 Chatbot / Deepdive
+                </button>
+            </div>
             
             <div class="dashboard-layout">
-                <!-- Left: Details Dashboard -->
-                <div class="dashboard-left">
-                    <div class="details-card glass-panel">
-                        <h2 id="ipo-title">IPO Title</h2>
+                <div class="dashboard-main full-width">
+                    <div class="details-card">
+                        <h2 id="ipo-title" style="margin-bottom: 5px;">IPO Title</h2>
+                        <div id="ipo-sector" style="margin-bottom: 20px; font-size: 0.9em; opacity: 0.8;"></div>
                         
+                        <div class="section-divider">Basic IPO Information</div>
                         <div class="metrics-grid">
-                            <div class="metric-card glass-subpanel">
-                                <span>Issue Size</span>
-                                <h4 id="metric-issue-size">--</h4>
-                            </div>
-                            <div class="metric-card glass-subpanel">
-                                <span>Price Band</span>
-                                <h4 id="metric-price">--</h4>
-                            </div>
-                            <div class="metric-card glass-subpanel">
-                                <span>Lot Size</span>
-                                <h4 id="metric-lot">--</h4>
-                            </div>
-                            <div class="metric-card glass-subpanel">
-                                <span>Exchange</span>
-                                <h4 id="metric-exchange">--</h4>
-                            </div>
+                            <div class="metric-card glass-subpanel"><span>Issue Size</span><h4 id="metric-issue-size">--</h4></div>
+                            <div class="metric-card glass-subpanel"><span>Price Band</span><h4 id="metric-price">--</h4></div>
+                            <div class="metric-card glass-subpanel"><span>Market Cap</span><h4 id="metric-market-cap">--</h4></div>
+                            <div class="metric-card glass-subpanel"><span>Lot Size</span><h4 id="metric-lot">--</h4><small>shares/lot</small></div>
+                            <div class="metric-card glass-subpanel"><span>Exchange</span><h4 id="metric-exchange">--</h4></div>
+                            <div class="metric-card glass-subpanel"><span>Fresh Issue</span><h4 id="metric-fresh-issue">--</h4></div>
+                            <div class="metric-card glass-subpanel"><span>OFS</span><h4 id="metric-ofs">--</h4><small>Offer for Sale</small></div>
+                            <div class="metric-card glass-subpanel"><span>Face Value</span><h4 id="metric-face-value">--</h4></div>
+                            <div class="metric-card glass-subpanel"><span>Promoter (Pre)</span><h4 id="metric-promoter-pre">--</h4><small>before IPO</small></div>
+                            <div class="metric-card glass-subpanel"><span>Promoter (Post)</span><h4 id="metric-promoter-post">--</h4><small>after IPO</small></div>
                         </div>
 
-                        <div class="sentiment-section glass-subpanel">
-                            <h3>Market Sentiment</h3>
-                            <div id="sentiment-content" class="sentiment-content">
-                                <span class="sentiment-indicator"></span>
-                                <p id="sentiment-text">Analyzing sentiment...</p>
-                            </div>
+                        <div class="section-divider">Business Overview</div>
+                        <div class="business-section glass-subpanel">
+                            <div id="business-model-content"></div>
                         </div>
 
+                        <div class="section-divider">Financial Performance (3-Year Trend)</div>
+                        <div class="charts-section glass-subpanel">
+                            <div class="chart-container">
+                                <canvas id="revenueChart"></canvas>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="marginChart"></canvas>
+                            </div>
+                        </div>
                         <div class="financials-section glass-subpanel">
-                            <h3>Financials</h3>
                             <div class="table-responsive">
-                                <table id="financials-table">
-                                    <thead>
-                                        <tr id="financials-head"></tr>
-                                    </thead>
+                                <table id="financials-table" class="ipo-table">
+                                    <thead><tr id="financials-head"></tr></thead>
                                     <tbody id="financials-body"></tbody>
                                 </table>
                             </div>
                         </div>
 
+                        <div class="section-divider">Key Risks</div>
                         <div class="risks-section glass-subpanel">
-                            <h3>Key Risks</h3>
                             <ul id="risks-list"></ul>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Right: Chat Interface -->
-                <div class="dashboard-right">
-                    <div class="chat-container glass-panel">
-                        <div class="chat-header">
-                            <h3>AI Assistant</h3>
-                        </div>
-                        <div class="chat-history" id="chat-history">
-                            <div class="chat-message assistant">
-                                <p>Hello! I can answer questions about this IPO. You can ask me to summarize financials or list top risks.</p>
-                            </div>
-                        </div>
-                        
-                        <div class="chat-quick-queries">
-                            <button class="quick-query-btn" data-query="Summarise financials">Summarise financials</button>
-                            <button class="quick-query-btn" data-query="Top 5 risks">Top 5 risks</button>
-                        </div>
-                        
-                        <div class="chat-input-area">
-                            <input type="text" id="chat-input" placeholder="Ask something..." autocomplete="off" />
-                            <button id="chat-send-btn" class="glass-btn" style="margin-bottom: 0;">Send</button>
                         </div>
                     </div>
                 </div>
             </div>
         </section>
     </main>
+    
+    <!-- Chatbot Side Panel -->
+    <div id="chat-sidepanel" class="sidepanel hidden glass-panel">
+        <div class="chat-header">
+            <h3>AI Assistant</h3>
+            <div class="chat-controls">
+                <button id="expand-chat-btn" class="icon-btn" title="Expand/Collapse">⤢</button>
+                <button id="close-chat-btn" class="icon-btn" title="Close">×</button>
+            </div>
+        </div>
+        <div class="chat-history" id="chat-history">
+            <div class="chat-message assistant">
+                <p>Hello! I can answer questions about this IPO. You can ask me to summarize financials or list top risks.</p>
+            </div>
+        </div>
+        
+        <div class="chat-quick-queries">
+            <button class="quick-query-btn" data-query="Summarise financials">Summarise financials</button>
+            <button class="quick-query-btn" data-query="Top 5 risks">Top 5 risks</button>
+        </div>
+        
+        <div class="chat-input-area">
+            <input type="text" id="chat-input" placeholder="Ask something..." autocomplete="off" />
+            <button id="chat-send-btn" class="glass-btn primary" style="margin-bottom: 0;">Send</button>
+        </div>
+    </div>
     
     <script src="script.js"></script>
 </body>

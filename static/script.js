@@ -3,14 +3,36 @@ const API_BASE_URL = 'https://supreme-ipo-api-123.azurewebsites.net/api';
 
 let currentIpoName = null;
 let currentChatHistory = [];
+let revenueChartInstance = null;
+let marginChartInstance = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     fetchIPOs();
 
+    // Tab Navigation Logic
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            // Remove active from all
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            // Add active to clicked
+            btn.classList.add('active');
+            const targetId = btn.getAttribute('data-tab');
+            document.getElementById(targetId).classList.add('active');
+        });
+    });
+
+    // Dashboard Buttons
     document.getElementById('back-btn').addEventListener('click', () => {
         document.getElementById('ipo-details-section').classList.add('hidden');
         document.getElementById('ipo-list-section').classList.remove('hidden');
+        closeChat();
     });
+
+    document.getElementById('open-chat-btn').addEventListener('click', openChat);
+    document.getElementById('close-chat-btn').addEventListener('click', closeChat);
+    document.getElementById('expand-chat-btn').addEventListener('click', toggleExpandChat);
 
     // Chat functionality
     document.getElementById('chat-send-btn').addEventListener('click', handleChatSend);
@@ -28,6 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function fetchIPOs() {
     try {
+        // You might need to change this URL back to production URL
         const response = await fetch(`${API_BASE_URL}/ipos`);
         if (!response.ok) throw new Error("Backend API not responding");
         const data = await response.json();
@@ -36,7 +59,7 @@ async function fetchIPOs() {
         document.getElementById('ipo-list-section').classList.remove('hidden');
 
         if (!data || data.length === 0) {
-            document.getElementById('current-ipos').innerHTML = '<p style="color: var(--text-muted)">No pre-cached IPOs found in database.</p>';
+            document.getElementById('current-tbody').innerHTML = '<tr><td colspan="8">No IPOs found.</td></tr>';
             return;
         }
 
@@ -48,51 +71,71 @@ async function fetchIPOs() {
                 if (t > maxTime) maxTime = t;
             }
         });
-        if (maxTime > 0) {
-            document.getElementById('sync-date').innerText = `Data last synced: ${new Date(maxTime).toLocaleString()}`;
-        } else {
-            document.getElementById('sync-date').innerText = `Data last synced: Unknown`;
-        }
+        document.getElementById('sync-date').innerText = maxTime > 0 
+            ? `Data last synced: ${new Date(maxTime).toLocaleString()}` 
+            : `Data last synced: Unknown`;
 
-        // Group IPOs (Fallback to 'current' if status is missing)
-        const currentList = document.getElementById('current-ipos');
-        const upcomingList = document.getElementById('upcoming-ipos');
-        const pastList = document.getElementById('past-ipos');
+        const currentTbody = document.getElementById('current-tbody');
+        const upcomingTbody = document.getElementById('upcoming-tbody');
+        const pastTbody = document.getElementById('past-tbody');
         
-        currentList.innerHTML = '';
-        upcomingList.innerHTML = '';
-        pastList.innerHTML = '';
+        currentTbody.innerHTML = ''; upcomingTbody.innerHTML = ''; pastTbody.innerHTML = '';
 
         data.forEach(ipo => {
-            const card = document.createElement('div');
-            card.className = 'ipo-card';
-            
-            let dateStr = ipo.updated_at ? new Date(ipo.updated_at).toLocaleDateString() : 'N/A';
-            card.innerHTML = `
-                <h3>${ipo.ipo_name}</h3>
-                <p>Symbol: ${ipo.symbol || 'N/A'}</p>
-                <p style="font-size: 0.8rem; margin-top: 0.5rem; opacity: 0.7;">Cached: ${dateStr}</p>
-            `;
-            card.onclick = () => fetchIPODetails(ipo.ipo_name);
-            
             const status = (ipo.status || 'current').toLowerCase();
+            const tr = document.createElement('tr');
+            tr.onclick = () => fetchIPODetails(ipo.ipo_name);
+
+            // Mapping based on NSE table columns requested
             if (status === 'upcoming') {
-                upcomingList.appendChild(card);
+                tr.innerHTML = `
+                    <td style="font-weight:600">${ipo.ipo_name || '-'}</td>
+                    <td>${ipo.symbol || '-'}</td>
+                    <td>${ipo.security_type || '-'}</td>
+                    <td>${ipo.price || ipo.price_band || '-'}</td>
+                    <td>${ipo.issue_start_date || '-'}</td>
+                    <td>${ipo.issue_end_date || '-'}</td>
+                    <td><span class="badge" style="border-color:#fbbf24;color:#fbbf24">${ipo.status || 'Upcoming'}</span></td>
+                    <td>${ipo.issue_size || '-'}</td>
+                `;
+                upcomingTbody.appendChild(tr);
             } else if (status === 'past') {
-                pastList.appendChild(card);
+                tr.innerHTML = `
+                    <td style="font-weight:600">${ipo.ipo_name || '-'}</td>
+                    <td>${ipo.symbol || '-'}</td>
+                    <td>${ipo.security_type || '-'}</td>
+                    <td>${ipo.price || '-'}</td>
+                    <td>${ipo.price_band || '-'}</td>
+                    <td>${ipo.issue_start_date || '-'}</td>
+                    <td>${ipo.issue_end_date || '-'}</td>
+                    <td>${ipo.listing_date || '-'}</td>
+                `;
+                pastTbody.appendChild(tr);
             } else {
-                currentList.appendChild(card);
+                // Current
+                let sharesFormatted = ipo.no_of_shares ? Number(ipo.no_of_shares).toLocaleString() : '-';
+                tr.innerHTML = `
+                    <td style="font-weight:600">${ipo.ipo_name || '-'}</td>
+                    <td>${ipo.symbol || '-'}</td>
+                    <td>${ipo.security_type || '-'}</td>
+                    <td>${ipo.price || ipo.price_band || '-'}</td>
+                    <td>${ipo.issue_start_date || '-'}</td>
+                    <td>${ipo.issue_end_date || '-'}</td>
+                    <td><span class="badge" style="border-color:#10b981;color:#10b981">${ipo.status || 'Current'}</span></td>
+                    <td>${sharesFormatted}</td>
+                `;
+                currentTbody.appendChild(tr);
             }
         });
 
-        if (!currentList.hasChildNodes()) currentList.innerHTML = '<p style="color: var(--text-muted)">None</p>';
-        if (!upcomingList.hasChildNodes()) upcomingList.innerHTML = '<p style="color: var(--text-muted)">None</p>';
-        if (!pastList.hasChildNodes()) pastList.innerHTML = '<p style="color: var(--text-muted)">None</p>';
+        if (!currentTbody.hasChildNodes()) currentTbody.innerHTML = '<tr><td colspan="8" style="text-align:center">No Current IPOs</td></tr>';
+        if (!upcomingTbody.hasChildNodes()) upcomingTbody.innerHTML = '<tr><td colspan="8" style="text-align:center">No Upcoming IPOs</td></tr>';
+        if (!pastTbody.hasChildNodes()) pastTbody.innerHTML = '<tr><td colspan="8" style="text-align:center">No Past IPOs</td></tr>';
 
     } catch (err) {
         document.getElementById('loader').classList.add('hidden');
         document.getElementById('ipo-list-section').classList.remove('hidden');
-        document.getElementById('current-ipos').innerHTML = `<p style="color:#ef4444;">Failed to load IPOs: ${err.message}</p>`;
+        document.getElementById('current-tbody').innerHTML = `<tr><td colspan="8" style="color:#ef4444;">Error: ${err.message}</td></tr>`;
     }
 }
 
@@ -103,80 +146,51 @@ async function fetchIPODetails(ipoName) {
         resetChatUI();
 
         document.getElementById('ipo-list-section').classList.add('hidden');
-        const detailsSection = document.getElementById('ipo-details-section');
-        detailsSection.classList.remove('hidden');
+        document.getElementById('ipo-details-section').classList.remove('hidden');
         
         document.getElementById('ipo-title').innerText = ipoName;
+        document.getElementById('ipo-sector').innerText = 'Loading...';
         
-        // Reset fields
-        document.getElementById('metric-issue-size').innerText = '--';
-        document.getElementById('metric-price').innerText = '--';
-        document.getElementById('metric-lot').innerText = '--';
-        document.getElementById('metric-exchange').innerText = '--';
+        // Reset top metrics
+        const metrics = ['issue-size', 'price', 'market-cap', 'lot', 'exchange', 'fresh-issue', 'ofs', 'face-value', 'promoter-pre', 'promoter-post'];
+        metrics.forEach(m => document.getElementById(`metric-${m}`).innerText = '--');
         
-        document.getElementById('sentiment-text').innerText = 'Analyzing sentiment...';
-        document.querySelector('.sentiment-indicator').className = 'sentiment-indicator';
-        
-        document.getElementById('financials-head').innerHTML = '';
-        document.getElementById('financials-body').innerHTML = '';
+        // Reset Business
+        document.getElementById('business-model-content').innerHTML = 'Loading...';
+
+        // Reset Risks
         document.getElementById('risks-list').innerHTML = '<li>Loading...</li>';
 
+        // Fetch Detail
         const response = await fetch(`${API_BASE_URL}/ipos/${encodeURIComponent(ipoName)}`);
         if (!response.ok) throw new Error("Failed to load details");
         const data = await response.json();
         
-        // Populate Metric Cards
-        document.getElementById('metric-issue-size').innerText = data.issue_size || 'N/A';
-        document.getElementById('metric-price').innerText = data.price_band || data.price || 'N/A';
-        document.getElementById('metric-lot').innerText = data.lot_size || 'N/A';
-        document.getElementById('metric-exchange').innerText = data.exchange || 'N/A';
+        document.getElementById('ipo-sector').innerText = data.sector || 'Sector unclassified';
 
-        // Populate Sentiment
-        if (data.sentiment) {
-            let sentimentText = typeof data.sentiment === 'string' ? data.sentiment : (data.sentiment.text || data.sentiment.label || JSON.stringify(data.sentiment));
-            document.getElementById('sentiment-text').innerText = sentimentText;
-            
-            const score = data.sentiment.score || 0;
-            const label = (data.sentiment.label || data.sentiment || '').toString().toLowerCase();
-            const indicator = document.querySelector('.sentiment-indicator');
-            
-            if (score > 0 || label.includes('positive') || label.includes('bullish')) {
-                indicator.className = 'sentiment-indicator positive';
-            } else if (score < 0 || label.includes('negative') || label.includes('bearish')) {
-                indicator.className = 'sentiment-indicator negative';
-            } else {
-                indicator.className = 'sentiment-indicator';
-            }
-        } else {
-            document.getElementById('sentiment-text').innerText = 'No sentiment data available.';
+        // Populate Top Metrics (handling both NSE live injected and LLM extracted data)
+        document.getElementById('metric-issue-size').innerText = data.issue_size || '--';
+        document.getElementById('metric-price').innerText = data.price_band || '--';
+        document.getElementById('metric-market-cap').innerText = data.market_cap || '--';
+        document.getElementById('metric-lot').innerText = data.lot_size || '--';
+        document.getElementById('metric-exchange').innerText = data.listing_exchange || '--';
+        document.getElementById('metric-fresh-issue').innerText = data.fresh_issue || '--';
+        document.getElementById('metric-ofs').innerText = data.ofs || '--';
+        document.getElementById('metric-face-value').innerText = data.face_value || '--';
+        document.getElementById('metric-promoter-pre').innerText = data.promoter_holding_pre || '--';
+        document.getElementById('metric-promoter-post').innerText = data.promoter_holding_post || '--';
+
+        // Populate Business Model
+        let bizHtml = '';
+        if (data.business_model) bizHtml += `<p><strong>Business Model:</strong><br>${data.business_model}</p>`;
+        if (data.competitive_moat) bizHtml += `<p><strong>Competitive Moat:</strong><br>${data.competitive_moat}</p>`;
+        if (data.revenue_streams && Array.isArray(data.revenue_streams) && data.revenue_streams.length > 0) {
+            bizHtml += `<p><strong>Revenue Streams:</strong><br>` + data.revenue_streams.map(r => `<span class="badge" style="margin-right:5px">${r}</span>`).join('') + `</p>`;
         }
+        document.getElementById('business-model-content').innerHTML = bizHtml || '<p style="color:var(--text-muted)">No business details available.</p>';
 
-        // Populate Financials
-        if (data.financials && Array.isArray(data.financials) && data.financials.length > 0) {
-            const headTr = document.getElementById('financials-head');
-            const tbody = document.getElementById('financials-body');
-            headTr.innerHTML = '';
-            tbody.innerHTML = '';
-            
-            const keys = Object.keys(data.financials[0]);
-            keys.forEach(k => {
-                const th = document.createElement('th');
-                th.innerText = k.replace(/_/g, ' ').toUpperCase();
-                headTr.appendChild(th);
-            });
-
-            data.financials.forEach(row => {
-                const tr = document.createElement('tr');
-                keys.forEach(k => {
-                    const td = document.createElement('td');
-                    td.innerText = row[k] !== null && row[k] !== undefined ? row[k] : '-';
-                    tr.appendChild(td);
-                });
-                tbody.appendChild(tr);
-            });
-        } else {
-            document.getElementById('financials-body').innerHTML = '<tr><td style="color: var(--text-muted);">No financial data available.</td></tr>';
-        }
+        // Populate Financials Table & Charts
+        renderFinancials(data.financials);
 
         // Populate Risks
         const risksList = document.getElementById('risks-list');
@@ -187,18 +201,127 @@ async function fetchIPODetails(ipoName) {
                 li.innerText = risk;
                 risksList.appendChild(li);
             });
-        } else if (typeof data.key_risks === 'string') {
-            const li = document.createElement('li');
-            li.innerText = data.key_risks;
-            risksList.appendChild(li);
         } else {
-            risksList.innerHTML = '<li style="color: var(--text-muted);">No risks identified.</li>';
+            risksList.innerHTML = '<li style="color: var(--text-muted); background:transparent; border:none">No risks identified.</li>';
         }
 
     } catch (err) {
         document.getElementById('ipo-title').innerText = "Error Loading Data";
-        document.getElementById('risks-list').innerHTML = `<li style="color:#ef4444;">${err.message}</li>`;
+        document.getElementById('risks-list').innerHTML = `<li style="color:#ef4444; background:transparent; border:none">${err.message}</li>`;
     }
+}
+
+// ── Chart.js Integration ──────────────────────────────────────────────
+function parseNum(val) {
+    if (!val) return null;
+    let cleaned = String(val).replace(/[₹,\s]/g, "").replace(/(cr|crore|lakh|mn|bn|million|billion|%)/gi, "");
+    const parsed = parseFloat(cleaned);
+    return isNaN(parsed) ? null : parsed;
+}
+
+function renderFinancials(financials) {
+    const tbody = document.getElementById('financials-body');
+    const thead = document.getElementById('financials-head');
+    thead.innerHTML = ''; tbody.innerHTML = '';
+
+    if (revenueChartInstance) { revenueChartInstance.destroy(); revenueChartInstance = null; }
+    if (marginChartInstance) { marginChartInstance.destroy(); marginChartInstance = null; }
+
+    if (!financials || !Array.isArray(financials) || financials.length === 0) {
+        tbody.innerHTML = '<tr><td style="color:var(--text-muted)">No financial data available.</td></tr>';
+        return;
+    }
+
+    // Sort by year (ascending for charts)
+    const sortedFins = [...financials].sort((a,b) => {
+        let yA = parseNum(a.year) || 0;
+        let yB = parseNum(b.year) || 0;
+        return yA - yB;
+    });
+
+    const years = sortedFins.map(f => f.year || 'Unknown');
+    const revenues = sortedFins.map(f => parseNum(f.revenue));
+    const pats = sortedFins.map(f => parseNum(f.pat));
+    const ebitdaMargins = sortedFins.map(f => parseNum(f.ebitda_margin));
+    const patMargins = sortedFins.map(f => parseNum(f.pat_margin));
+
+    // Chart 1: Revenue vs PAT
+    const ctxRev = document.getElementById('revenueChart').getContext('2d');
+    revenueChartInstance = new Chart(ctxRev, {
+        type: 'bar',
+        data: {
+            labels: years,
+            datasets: [
+                { label: 'Revenue (₹ Cr)', data: revenues, backgroundColor: '#3b82f6', borderRadius: 4 },
+                { label: 'PAT (₹ Cr)', data: pats, backgroundColor: '#10b981', borderRadius: 4 }
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { labels: { color: '#94a3b8' } }, title: { display: true, text: 'Revenue vs PAT', color: '#f8fafc' } },
+            scales: {
+                x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+            }
+        }
+    });
+
+    // Chart 2: Margin Trends
+    const ctxMar = document.getElementById('marginChart').getContext('2d');
+    marginChartInstance = new Chart(ctxMar, {
+        type: 'line',
+        data: {
+            labels: years,
+            datasets: [
+                { label: 'EBITDA Margin %', data: ebitdaMargins, borderColor: '#fbbf24', tension: 0.4, fill: false },
+                { label: 'PAT Margin %', data: patMargins, borderColor: '#10b981', tension: 0.4, fill: false }
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { labels: { color: '#94a3b8' } }, title: { display: true, text: 'Margin Trends (%)', color: '#f8fafc' } },
+            scales: {
+                x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+            }
+        }
+    });
+
+    // Render Table (Descending order usually looks better for tables)
+    const reversedFins = [...sortedFins].reverse();
+    const cols = ['Year', 'Revenue', 'EBITDA', 'EBITDA Margin', 'PAT', 'PAT Margin', 'EPS', 'CFO'];
+    cols.forEach(c => {
+        const th = document.createElement('th'); th.innerText = c; thead.appendChild(th);
+    });
+
+    reversedFins.forEach(f => {
+        const tr = document.createElement('tr');
+        const vals = [f.year, f.revenue, f.ebitda, f.ebitda_margin, f.pat, f.pat_margin, f.eps, f.cash_flow_ops];
+        vals.forEach(v => {
+            const td = document.createElement('td'); td.innerText = v || '-'; tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+    });
+}
+
+// ── Chat Side Panel ──────────────────────────────────────────────────
+function openChat() {
+    const sidepanel = document.getElementById('chat-sidepanel');
+    sidepanel.classList.remove('hidden');
+    // slight delay to ensure transition triggers
+    setTimeout(() => { sidepanel.classList.add('open'); }, 10);
+}
+
+function closeChat() {
+    const sidepanel = document.getElementById('chat-sidepanel');
+    sidepanel.classList.remove('open');
+    sidepanel.classList.remove('expanded');
+    setTimeout(() => { sidepanel.classList.add('hidden'); }, 300);
+}
+
+function toggleExpandChat() {
+    const sidepanel = document.getElementById('chat-sidepanel');
+    sidepanel.classList.toggle('expanded');
 }
 
 function resetChatUI() {
@@ -225,15 +348,14 @@ async function sendChatMessage(message) {
 
     const chatHistoryEl = document.getElementById('chat-history');
     
-    // Add user message to UI
+    // Add user msg
     const userMsgDiv = document.createElement('div');
     userMsgDiv.className = 'chat-message user';
     userMsgDiv.innerHTML = `<p>${message.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`;
     chatHistoryEl.appendChild(userMsgDiv);
-    
     chatHistoryEl.scrollTop = chatHistoryEl.scrollHeight;
 
-    // Add loading indicator
+    // Loading indicator
     const loadingDiv = document.createElement('div');
     loadingDiv.className = 'chat-message assistant loading';
     loadingDiv.innerHTML = `<p><i>Thinking...</i></p>`;
@@ -243,40 +365,27 @@ async function sendChatMessage(message) {
     try {
         const response = await fetch(`${API_BASE_URL}/chat`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                ipo_name: currentIpoName,
-                message: message,
-                chat_history: currentChatHistory
-            })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ipo_name: currentIpoName, message: message, chat_history: currentChatHistory })
         });
 
         if (!response.ok) throw new Error("Chat failed");
-        
         const data = await response.json();
         const answer = data.answer || "Sorry, I couldn't understand that.";
 
-        // Update history
         currentChatHistory.push({ role: 'user', content: message });
         currentChatHistory.push({ role: 'assistant', content: answer });
 
-        // Remove loading
         chatHistoryEl.removeChild(loadingDiv);
 
-        // Add assistant message to UI
         const assistantMsgDiv = document.createElement('div');
         assistantMsgDiv.className = 'chat-message assistant';
         assistantMsgDiv.innerHTML = `<p>${answer.replace(/\n/g, '<br>')}</p>`;
         chatHistoryEl.appendChild(assistantMsgDiv);
-        
         chatHistoryEl.scrollTop = chatHistoryEl.scrollHeight;
 
     } catch (err) {
-        if(chatHistoryEl.contains(loadingDiv)) {
-            chatHistoryEl.removeChild(loadingDiv);
-        }
+        if(chatHistoryEl.contains(loadingDiv)) chatHistoryEl.removeChild(loadingDiv);
         const errorDiv = document.createElement('div');
         errorDiv.className = 'chat-message assistant';
         errorDiv.innerHTML = `<p style="color:#ef4444;">Error: ${err.message}</p>`;

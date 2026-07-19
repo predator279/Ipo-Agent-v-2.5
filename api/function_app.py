@@ -39,11 +39,49 @@ def get_ipo_profile(req: func.HttpRequest) -> func.HttpResponse:
     logging.info(f'Fetching profile for {ipo_name}')
     try:
         sb = get_supabase()
+        
+        # Get the profile from the database
         response = sb.table("ipo_profiles").select("profile_json").eq("ipo_name", ipo_name).execute()
-        if response.data:
-            return func.HttpResponse(json.dumps(response.data[0]['profile_json']), mimetype="application/json")
-        else:
+        if not response.data:
             return func.HttpResponse("Not Found", status_code=404)
+            
+        profile_json = response.data[0]['profile_json']
+        
+        # Get the symbol to fetch NSE details
+        registry_res = sb.table("ipo_cache_registry").select("symbol").eq("ipo_name", ipo_name).execute()
+        symbol = None
+        if registry_res.data and registry_res.data[0].get("symbol"):
+            symbol = registry_res.data[0]["symbol"]
+            
+        if symbol:
+            try:
+                import sys
+                import os
+                # Add root folder to sys.path to import ipo_fetcher
+                root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+                if root_dir not in sys.path:
+                    sys.path.insert(0, root_dir)
+                
+                from ipo_fetcher import fetch_nse_ipo_detail
+                nse_data = fetch_nse_ipo_detail(symbol)
+                
+                # Merge NSE hard facts if present
+                if nse_data and "issueInfo" in nse_data:
+                    info = nse_data["issueInfo"]
+                    # If NSE data has these fields, overwrite or inject them.
+                    # We only overwrite if we get a meaningful value, otherwise we rely on LLM.
+                    if info.get("issueSize"):
+                        profile_json["issue_size"] = f"₹{info['issueSize']} Cr"
+                    if info.get("priceBand"):
+                        profile_json["price_band"] = info["priceBand"]
+                    if info.get("lotSize"):
+                        profile_json["lot_size"] = info["lotSize"]
+                    if info.get("faceValue"):
+                        profile_json["face_value"] = f"₹{info['faceValue']}"
+            except Exception as e:
+                logging.warning(f"Failed to inject live NSE data for {symbol}: {e}")
+
+        return func.HttpResponse(json.dumps(profile_json), mimetype="application/json")
     except Exception as e:
         logging.error(f"Error fetching IPO profile: {e}")
         return func.HttpResponse("Error", status_code=500)
