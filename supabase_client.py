@@ -87,7 +87,7 @@ def save_profile(ipo_name: str, symbol: str, profile_dict: dict) -> None:
             "symbol":      symbol,
             "profile_json": profile_dict,
             "updated_at":  "NOW()",
-        }).execute()
+        }, on_conflict="ipo_name").execute()
     except Exception as exc:
         print(f"[supabase_client] save_profile({ipo_name}) failed: {exc}")
 
@@ -133,6 +133,6 @@ def register_ipo_cached(
         if nse_metadata is not None:
             payload["nse_metadata"] = nse_metadata
             
-        sb.table("ipo_cache_registry").upsert(payload).execute()
+        sb.table("ipo_cache_registry").upsert(payload, on_conflict="ipo_name").execute()
     except Exception as exc:
         print(f"[supabase_client] register_ipo_cached({ipo_name}) failed: {exc}")
