@@ -166,14 +166,14 @@ async function fetchIPODetails(ipoName) {
         if (!response.ok) throw new Error("Failed to load details");
         const data = await response.json();
         
-        document.getElementById('ipo-sector').innerText = data.sector || 'Sector unclassified';
+        document.getElementById('ipo-sector').innerText = data.sector || (data.company_overview && data.company_overview.industry) || 'Sector unclassified';
 
         // Populate Top Metrics (handling both NSE live injected and LLM extracted data)
         document.getElementById('metric-issue-size').innerText = data.issue_size || '--';
         document.getElementById('metric-price').innerText = data.price_band || '--';
         document.getElementById('metric-market-cap').innerText = data.market_cap || '--';
         document.getElementById('metric-lot').innerText = data.lot_size || '--';
-        document.getElementById('metric-exchange').innerText = data.listing_exchange || '--';
+        document.getElementById('metric-exchange').innerText = data.exchange || data.listing_exchange || '--';
         document.getElementById('metric-fresh-issue').innerText = data.fresh_issue || '--';
         document.getElementById('metric-ofs').innerText = data.ofs || '--';
         document.getElementById('metric-face-value').innerText = data.face_value || '--';
@@ -187,16 +187,37 @@ async function fetchIPODetails(ipoName) {
         if (data.revenue_streams && Array.isArray(data.revenue_streams) && data.revenue_streams.length > 0) {
             bizHtml += `<p><strong>Revenue Streams:</strong><br>` + data.revenue_streams.map(r => `<span class="badge" style="margin-right:5px">${r}</span>`).join('') + `</p>`;
         }
+        
+        // Alternative schema fallback
+        if (data.company_overview) {
+            const co = data.company_overview;
+            if (co.industry && !data.sector) bizHtml += `<p><strong>Industry:</strong><br>${co.industry}</p>`;
+            if (co.leadership) bizHtml += `<p><strong>Leadership:</strong><br>${co.leadership}</p>`;
+            if (co.ipo_status) bizHtml += `<p><strong>IPO Status:</strong><br>${co.ipo_status}</p>`;
+        }
+        
         document.getElementById('business-model-content').innerHTML = bizHtml || '<p style="color:var(--text-muted)">No business details available.</p>';
 
         // Populate Financials Table & Charts
-        renderFinancials(data.financials);
+        // Some schemas use `financials` array, others use `financial_summary` object
+        let financialsData = data.financials;
+        if (!financialsData && data.financial_summary) {
+            // Attempt to build a dummy array if it's the alternate schema just so something renders
+            financialsData = [{
+                year: 'Latest',
+                revenue: data.financial_summary.revenue_fy_latest || '-',
+                pat: data.financial_summary.profit_after_tax_fy_latest || '-',
+                ebitda: '-', ebitda_margin: '-', pat_margin: '-', eps: '-', cash_flow_ops: '-'
+            }];
+        }
+        renderFinancials(financialsData);
 
         // Populate Risks
         const risksList = document.getElementById('risks-list');
         risksList.innerHTML = '';
-        if (data.key_risks && Array.isArray(data.key_risks)) {
-            data.key_risks.forEach(risk => {
+        const risksArr = data.key_risks || data.risk_factors;
+        if (risksArr && Array.isArray(risksArr)) {
+            risksArr.forEach(risk => {
                 const li = document.createElement('li');
                 li.innerText = risk;
                 risksList.appendChild(li);
