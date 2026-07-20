@@ -146,7 +146,8 @@ def run_nightly():
             # 2. Extract Document Profile
             try:
                 print(f"[{ipo_name}] Extracting Document Profile...")
-                profile_dict = analyze_rhp(ipo_name, symbol=symbol)
+                from ipo_extractor import extract_ipo_profile
+                profile_dict = extract_ipo_profile(vectorstore, ipo_name)
             except Exception as e:
                 print(f"[{ipo_name}] Failed to analyze RHP: {e}")
                 profile_dict = None
