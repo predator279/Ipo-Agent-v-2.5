@@ -74,7 +74,8 @@ USER_SYSTEM_PROMPT = """Extract IPO information into **exactly** the schema belo
 4. **Never fabricate or estimate a plausible-sounding number.** A missing field must stay missing.
 
 ## Global type rules
-- Any field that is inherently numeric (gmp, score, pe, revenue, market_cap, pat_margin_pct, promoter %, subscription multiples, etc.) must be output as a **number**, with no "x", "₹", "Cr", or "%" characters embedded in the value. Put units in field names/labels, not in the value.
+- For large financial numbers (e.g., revenue, market cap, pat, ebitda), preserve the exact units from the document using standard abbreviations (e.g., "₹2,772 Cr", "$1.5M", "₹50 Lakhs"). Do NOT attempt to convert these into raw full integers, as that causes mathematical errors.
+- Always include symbols where appropriate ("₹", "%", "x").
 - Dates use `YYYY-MM-DD`.
 - Do not output placeholder sentences like "Not disclosed in the provided text" anywhere — use `null`/`[]` per the rule above.
 
@@ -89,13 +90,13 @@ USER_SYSTEM_PROMPT = """Extract IPO information into **exactly** the schema belo
   "basic_info": {
     "issue_size": "string | null",
     "price_band": "string | null",
-    "market_cap": "number | null",
-    "lot_size": "number | null",
-    "face_value": "number | null",
+    "market_cap": "string | null",
+    "lot_size": "string | null",
+    "face_value": "string | null",
     "fresh_issue": "string | null",
     "offer_for_sale": "string | null",
-    "promoter_holding_pre_pct": "number | null",
-    "promoter_holding_post_pct": "number | null",
+    "promoter_holding_pre_pct": "string | null",
+    "promoter_holding_post_pct": "string | null",
     "bid_open_date": "date | null",
     "bid_close_date": "date | null",
     "listing_date": "date | null"
@@ -110,13 +111,13 @@ USER_SYSTEM_PROMPT = """Extract IPO information into **exactly** the schema belo
     "yearly_financials": [
       {
         "year": "string, e.g. FY2024",
-        "revenue": "number | null",
-        "ebitda": "number | null",
-        "ebitda_margin_pct": "number | null",
-        "pat": "number | null",
-        "pat_margin_pct": "number | null",
-        "eps": "number | null",
-        "cfo": "number | null"
+        "revenue": "string | null",
+        "ebitda": "string | null",
+        "ebitda_margin_pct": "string | null",
+        "pat": "string | null",
+        "pat_margin_pct": "string | null",
+        "eps": "string | null",
+        "cfo": "string | null"
       }
     ],
     "key_metrics": {
@@ -131,14 +132,14 @@ USER_SYSTEM_PROMPT = """Extract IPO information into **exactly** the schema belo
   "peer_comparison": [
     {
       "name": "string | \"NA\"",
-      "pe": "number | \"NA\"",
-      "revenue": "number | \"NA\"",
-      "pat_margin_pct": "number | \"NA\""
+      "pe": "string | \"NA\"",
+      "revenue": "string | \"NA\"",
+      "pat_margin_pct": "string | \"NA\""
     }
   ],
   "objects_of_issue": {
     "total_amount": "string | null",
-    "breakdown": [ {"purpose": "string", "amount": "number | null"} ],
+    "breakdown": [ {"purpose": "string", "amount": "string | null"} ],
     "categories": ["string"]
   },
   "management": {
@@ -337,10 +338,10 @@ def extract_ipo_profile(vectorstore: Chroma, ipo_name: str, progress_callback=No
             m_qib = re.search(r'([\d.]+)\s*x?\s*\(qib\)', sub_raw, re.I)
             m_nii = re.search(r'([\d.]+)\s*x?\s*\(nii\)', sub_raw, re.I)
             m_ret = re.search(r'([\d.]+)\s*x?\s*\(retail\)', sub_raw, re.I)
-            if m_tot: sub_dict["total"] = float(m_tot.group(1))
-            if m_qib: sub_dict["qib"] = float(m_qib.group(1))
-            if m_nii: sub_dict["nii"] = float(m_nii.group(1))
-            if m_ret: sub_dict["retail"] = float(m_ret.group(1))
+            if m_tot: sub_dict["total"] = f"{m_tot.group(1)}x"
+            if m_qib: sub_dict["qib"] = f"{m_qib.group(1)}x"
+            if m_nii: sub_dict["nii"] = f"{m_nii.group(1)}x"
+            if m_ret: sub_dict["retail"] = f"{m_ret.group(1)}x"
             
         sentiment_json = {
             "gmp": _parse_num(gmp_val),

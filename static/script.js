@@ -462,10 +462,10 @@ async function fetchIPODetails(ipoName) {
             // Overview stats
             document.getElementById('sentiment-gmp').innerText = sent.gmp !== null && sent.gmp !== undefined ? sent.gmp : '--';
             const sub = sent.subscription || {};
-            document.getElementById('sentiment-sub-total').innerText = sub.total !== null && sub.total !== undefined ? `${sub.total}x` : '--';
-            document.getElementById('sentiment-sub-qib').innerText = sub.qib !== null && sub.qib !== undefined ? `${sub.qib}x` : '--';
-            document.getElementById('sentiment-sub-nii').innerText = sub.nii !== null && sub.nii !== undefined ? `${sub.nii}x` : '--';
-            document.getElementById('sentiment-sub-retail').innerText = sub.retail !== null && sub.retail !== undefined ? `${sub.retail}x` : '--';
+            document.getElementById('sentiment-sub-total').innerText = sub.total !== null && sub.total !== undefined ? sub.total : '--';
+            document.getElementById('sentiment-sub-qib').innerText = sub.qib !== null && sub.qib !== undefined ? sub.qib : '--';
+            document.getElementById('sentiment-sub-nii').innerText = sub.nii !== null && sub.nii !== undefined ? sub.nii : '--';
+            document.getElementById('sentiment-sub-retail').innerText = sub.retail !== null && sub.retail !== undefined ? sub.retail : '--';
             
             const sources = sent.sources_used || [];
             document.getElementById('sentiment-sources').innerText = sources.length ? sources.join(' · ') : '--';
