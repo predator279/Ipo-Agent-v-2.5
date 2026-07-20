@@ -304,7 +304,8 @@ async function fetchIPODetails(ipoName) {
             document.getElementById('objects-issue-section-container').classList.remove('hidden');
             
             // Breakdown Chart
-            const chartData = objBreakdown.filter(x => x.amount !== null && x.amount !== undefined);
+            const chartData = objBreakdown.map(x => ({ ...x, parsedAmount: parseNum(x.amount) }))
+                                          .filter(x => x.parsedAmount !== null && x.parsedAmount !== undefined && !isNaN(x.parsedAmount));
             if (chartData.length > 0) {
                 document.getElementById('objects-chart-container').classList.remove('hidden');
                 document.getElementById('objects-no-chart').classList.add('hidden');
@@ -314,7 +315,7 @@ async function fetchIPODetails(ipoName) {
                     data: {
                         labels: chartData.map(x => x.purpose || 'Unknown'),
                         datasets: [{
-                            data: chartData.map(x => x.amount),
+                            data: chartData.map(x => x.parsedAmount),
                             backgroundColor: ['#3b82f6', '#10b981', '#fbbf24', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'],
                             borderWidth: 0
                         }]
