@@ -5,6 +5,8 @@ let currentIpoName = null;
 let currentChatHistory = [];
 let revenueChartInstance = null;
 let marginChartInstance = null;
+let objectsChartInstance = null;
+let sentimentChartInstance = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     fetchIPOs();
@@ -158,8 +160,17 @@ async function fetchIPODetails(ipoName) {
         // Reset Business
         document.getElementById('business-model-content').innerHTML = 'Loading...';
 
-        // Reset Risks
-        document.getElementById('risks-list').innerHTML = '<li>Loading...</li>';
+        // Reset Risks and New Sections
+        document.getElementById('key-metrics-section-container').classList.add('hidden');
+        document.getElementById('peer-comparison-section-container').classList.add('hidden');
+        document.getElementById('objects-issue-section-container').classList.add('hidden');
+        document.getElementById('management-section-container').classList.add('hidden');
+        document.getElementById('sentiment-section-container').classList.add('hidden');
+        document.getElementById('risks-section-container').classList.add('hidden');
+        document.getElementById('risks-content').innerHTML = 'Loading...';
+
+        if (objectsChartInstance) { objectsChartInstance.destroy(); objectsChartInstance = null; }
+        if (sentimentChartInstance) { sentimentChartInstance.destroy(); sentimentChartInstance = null; }
 
         // Fetch Detail
         const response = await fetch(`${API_BASE_URL}/ipos/${encodeURIComponent(ipoName)}`);
@@ -204,59 +215,308 @@ async function fetchIPODetails(ipoName) {
         document.getElementById('business-model-content').innerHTML = bizHtml || '<p style="color:var(--text-muted)">No business details available.</p>';
 
         // Populate Financials Table & Charts
-        // Handle new schema `fin.yearly_financials`, older `financials`, and alternate `financial_summary.revenue_fy_latest`
         let financialsData = fin.yearly_financials || data.financials;
         if (!financialsData && data.financial_summary && data.financial_summary.revenue_fy_latest) {
-            // Attempt to build a dummy array if it's the alternate schema just so something renders
             financialsData = [{
                 year: 'Latest',
-                revenue: data.financial_summary.revenue_fy_latest || '-',
-                pat: data.financial_summary.profit_after_tax_fy_latest || '-',
-                ebitda: '-', ebitda_margin: '-', pat_margin: '-', eps: '-', cash_flow_ops: '-'
+                revenue: data.financial_summary.revenue_fy_latest,
+                pat: data.financial_summary.profit_after_tax_fy_latest,
+                ebitda: null, ebitda_margin_pct: null, pat_margin_pct: null, eps: null, cfo: null
             }];
         }
-        
-        // Ensure mapping for new schema fields in charts logic
         if (financialsData && Array.isArray(financialsData)) {
             financialsData = financialsData.map(f => ({
                 ...f,
-                ebitda_margin: f.ebitda_margin_pct || f.ebitda_margin,
-                pat_margin: f.pat_margin_pct || f.pat_margin,
-                cash_flow_ops: f.cfo || f.cash_flow_ops
+                ebitda_margin_pct: f.ebitda_margin_pct !== undefined ? f.ebitda_margin_pct : f.ebitda_margin,
+                pat_margin_pct: f.pat_margin_pct !== undefined ? f.pat_margin_pct : f.pat_margin,
+                cfo: f.cfo !== undefined ? f.cfo : f.cash_flow_ops
             }));
         }
         
         renderFinancials(financialsData);
 
-        // Populate Risks
-        const risksList = document.getElementById('risks-list');
-        risksList.innerHTML = '';
-        const risksArr = data.risk_factors || data.key_risks;
+        // 1. Key Metrics
+        const keyMetrics = fin.key_metrics || {};
+        const bsArr = keyMetrics.balance_sheet || [];
+        const rrArr = keyMetrics.return_ratios || [];
+        const vmArr = keyMetrics.valuation_multiples || [];
+        const skArr = keyMetrics.sector_kpis || [];
+        
+        if (bsArr.length || rrArr.length || vmArr.length || skArr.length) {
+            document.getElementById('key-metrics-section-container').classList.remove('hidden');
+            
+            // Balance Sheet
+            if (bsArr.length) {
+                document.getElementById('metrics-col-bs').classList.remove('hidden');
+                document.getElementById('metrics-bs-list').innerHTML = bsArr.map(x => `<li><strong>${x.label}:</strong> ${x.value}</li>`).join('');
+            } else {
+                document.getElementById('metrics-col-bs').classList.add('hidden');
+            }
+            
+            // Return Ratios & Valuation Multiples
+            if (rrArr.length || vmArr.length) {
+                document.getElementById('metrics-col-ratios').classList.remove('hidden');
+                if (rrArr.length) {
+                    document.getElementById('metrics-ratios-sub').classList.remove('hidden');
+                    document.getElementById('metrics-ratios-list').innerHTML = rrArr.map(x => `<li><strong>${x.label}:</strong> ${x.value}</li>`).join('');
+                } else {
+                    document.getElementById('metrics-ratios-sub').classList.add('hidden');
+                }
+                if (vmArr.length) {
+                    document.getElementById('metrics-valuation-sub').classList.remove('hidden');
+                    document.getElementById('metrics-valuation-list').innerHTML = vmArr.map(x => `<li><strong>${x.label}:</strong> ${x.value}</li>`).join('');
+                } else {
+                    document.getElementById('metrics-valuation-sub').classList.add('hidden');
+                }
+            } else {
+                document.getElementById('metrics-col-ratios').classList.add('hidden');
+            }
+            
+            // Sector KPIs
+            if (skArr.length) {
+                document.getElementById('metrics-col-kpis').classList.remove('hidden');
+                document.getElementById('metrics-kpis-list').innerHTML = skArr.map(x => `<li><strong>${x.label}:</strong> ${x.value}</li>`).join('');
+            } else {
+                document.getElementById('metrics-col-kpis').classList.add('hidden');
+            }
+        }
+
+        // 2. Peer Comparison
+        const peers = data.peer_comparison || [];
+        if (peers.length > 0) {
+            document.getElementById('peer-comparison-section-container').classList.remove('hidden');
+            document.getElementById('peer-tbody').innerHTML = peers.map(p => `
+                <tr>
+                    <td>${p.name || '—'}</td>
+                    <td>${p.pe !== null && p.pe !== undefined ? p.pe : '—'}</td>
+                    <td>${p.revenue !== null && p.revenue !== undefined ? p.revenue : '—'}</td>
+                    <td>${p.pat_margin_pct !== null && p.pat_margin_pct !== undefined ? p.pat_margin_pct : '—'}</td>
+                </tr>
+            `).join('');
+        }
+
+        // 3. Objects of the Issue
+        const objects = data.objects_of_issue || {};
+        const objBreakdown = objects.breakdown || [];
+        const objCategories = objects.categories || [];
+        
+        if (objects.total_amount || objBreakdown.length || objCategories.length) {
+            document.getElementById('objects-issue-section-container').classList.remove('hidden');
+            
+            // Breakdown Chart
+            const chartData = objBreakdown.filter(x => x.amount !== null && x.amount !== undefined);
+            if (chartData.length > 0) {
+                document.getElementById('objects-chart-container').classList.remove('hidden');
+                document.getElementById('objects-no-chart').classList.add('hidden');
+                const ctxObj = document.getElementById('objectsChart').getContext('2d');
+                objectsChartInstance = new Chart(ctxObj, {
+                    type: 'doughnut',
+                    data: {
+                        labels: chartData.map(x => x.purpose || 'Unknown'),
+                        datasets: [{
+                            data: chartData.map(x => x.amount),
+                            backgroundColor: ['#3b82f6', '#10b981', '#fbbf24', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: { legend: { position: 'right', labels: { color: '#94a3b8' } } }
+                    }
+                });
+            } else {
+                document.getElementById('objects-chart-container').classList.add('hidden');
+                document.getElementById('objects-no-chart').classList.remove('hidden');
+            }
+            
+            // Categories List
+            if (objCategories.length > 0) {
+                document.getElementById('objects-categories-list').innerHTML = objCategories.map(c => `<span class="badge">${c}</span>`).join('');
+            } else {
+                document.getElementById('objects-categories-list').innerHTML = '<span style="color:var(--text-muted)">No categories specified.</span>';
+            }
+        }
+
+        // 4. Management & Promoters
+        const mgt = data.management || {};
+        const keyMgt = mgt.key_management || [];
+        const promoters = mgt.promoters || [];
+        const litigations = mgt.litigations || {};
+        
+        if (keyMgt.length || promoters.length || litigations.status_summary || litigations.details) {
+            document.getElementById('management-section-container').classList.remove('hidden');
+            
+            if (keyMgt.length) {
+                document.getElementById('mgmt-key-col').classList.remove('hidden');
+                document.getElementById('mgmt-key-list').innerHTML = keyMgt.map(m => `<span class="badge" style="display:block; text-align:left; border-color:var(--border); color:var(--text-main); background:rgba(255,255,255,0.02)">👤 ${m.name} — ${m.role}</span>`).join('');
+            } else {
+                document.getElementById('mgmt-key-col').classList.add('hidden');
+            }
+            
+            if (promoters.length) {
+                document.getElementById('mgmt-promoters-col').classList.remove('hidden');
+                document.getElementById('mgmt-promoters-list').innerHTML = promoters.map(p => {
+                    let typeStr = p.type ? ` (${p.type})` : '';
+                    return `<span class="badge" style="display:block; text-align:left; border-color:var(--border); color:var(--text-main); background:rgba(255,255,255,0.02)">🏢 ${p.name}${typeStr}</span>`;
+                }).join('');
+            } else {
+                document.getElementById('mgmt-promoters-col').classList.add('hidden');
+            }
+            
+            if (litigations.status_summary || litigations.details) {
+                document.getElementById('mgmt-litigations').classList.remove('hidden');
+                let litHtml = '<strong>⚖️ Litigations:</strong> ';
+                if (litigations.status_summary) litHtml += litigations.status_summary + ' ';
+                if (litigations.details) litHtml += `<span style="color:var(--text-muted)">${litigations.details}</span>`;
+                document.getElementById('mgmt-litigations').innerHTML = litHtml;
+            } else {
+                document.getElementById('mgmt-litigations').classList.add('hidden');
+            }
+        }
+
+        // 5. Key Risks
+        const risksArr = data.risk_factors || data.key_risks || [];
         if (risksArr && Array.isArray(risksArr) && risksArr.length > 0) {
-            risksArr.forEach(risk => {
-                const li = document.createElement('li');
-                // new schema has {category, description}, old has string
-                li.innerHTML = typeof risk === 'object' ? `<strong>${risk.category}:</strong> ${risk.description}` : risk;
-                risksList.appendChild(li);
-            });
+            document.getElementById('risks-section-container').classList.remove('hidden');
+            
+            const risksContent = document.getElementById('risks-content');
+            if (typeof risksArr[0] === 'object' && risksArr[0].category) {
+                // Group by category
+                const groups = {};
+                risksArr.forEach(r => {
+                    const c = r.category || 'Other Risks';
+                    if (!groups[c]) groups[c] = [];
+                    groups[c].push(r.description);
+                });
+                
+                let risksHtml = '';
+                for (const [cat, descs] of Object.entries(groups)) {
+                    risksHtml += `
+                        <div class="risk-category">
+                            <h4 style="margin: 0 0 0.5rem 0; color: var(--text-main);">${cat}</h4>
+                            <ul class="styled-list negative">
+                                ${descs.map(d => `<li>${d}</li>`).join('')}
+                            </ul>
+                        </div>
+                    `;
+                }
+                risksContent.innerHTML = risksHtml;
+            } else {
+                // Legacy format (flat strings)
+                document.getElementById('risks-content').innerHTML = `<ul class="styled-list negative">${risksArr.map(r => `<li>${r}</li>`).join('')}</ul>`;
+            }
         } else {
-            risksList.innerHTML = '<li style="color: var(--text-muted); background:transparent; border:none">No risks identified.</li>';
+            document.getElementById('risks-section-container').classList.add('hidden');
+        }
+
+        // 6. Market Sentiment Analysis
+        const sent = data.sentiment || {};
+        if (Object.keys(sent).length > 0 && (sent.score !== null || sent.gmp !== null || (sent.summary && sent.summary.length))) {
+            document.getElementById('sentiment-section-container').classList.remove('hidden');
+            
+            // Gauge
+            const score = sent.score !== null && sent.score !== undefined ? sent.score : 0;
+            document.getElementById('sentiment-score-text').innerText = sent.score !== null && sent.score !== undefined ? score : '--';
+            
+            const lbl = sent.sentiment_label || 'Neutral';
+            const labelEl = document.getElementById('sentiment-label');
+            labelEl.innerText = lbl;
+            if (lbl.toLowerCase().includes('positive')) {
+                labelEl.style.borderColor = 'var(--sentiment-positive)';
+                labelEl.style.color = 'var(--sentiment-positive)';
+            } else if (lbl.toLowerCase().includes('negative')) {
+                labelEl.style.borderColor = 'var(--sentiment-negative)';
+                labelEl.style.color = 'var(--sentiment-negative)';
+            } else {
+                labelEl.style.borderColor = 'var(--sentiment-neutral)';
+                labelEl.style.color = 'var(--sentiment-neutral)';
+            }
+
+            const ctxGauge = document.getElementById('sentimentGauge').getContext('2d');
+            let gaugeColor = '#fbbf24';
+            if (lbl.toLowerCase().includes('positive')) gaugeColor = '#10b981';
+            if (lbl.toLowerCase().includes('negative')) gaugeColor = '#ef4444';
+
+            const maxScore = 5;
+            const remainder = Math.max(0, maxScore - score);
+
+            sentimentChartInstance = new Chart(ctxGauge, {
+                type: 'doughnut',
+                data: {
+                    datasets: [{
+                        data: [score, remainder],
+                        backgroundColor: [gaugeColor, 'rgba(255,255,255,0.1)'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    rotation: -90,
+                    circumference: 180,
+                    cutout: '75%',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { tooltip: { enabled: false }, legend: { display: false } }
+                }
+            });
+
+            // Overview stats
+            document.getElementById('sentiment-gmp').innerText = sent.gmp !== null && sent.gmp !== undefined ? sent.gmp : '--';
+            const sub = sent.subscription || {};
+            document.getElementById('sentiment-sub-total').innerText = sub.total !== null && sub.total !== undefined ? `${sub.total}x` : '--';
+            document.getElementById('sentiment-sub-qib').innerText = sub.qib !== null && sub.qib !== undefined ? `${sub.qib}x` : '--';
+            document.getElementById('sentiment-sub-nii').innerText = sub.nii !== null && sub.nii !== undefined ? `${sub.nii}x` : '--';
+            document.getElementById('sentiment-sub-retail').innerText = sub.retail !== null && sub.retail !== undefined ? `${sub.retail}x` : '--';
+            
+            const sources = sent.sources_used || [];
+            document.getElementById('sentiment-sources').innerText = sources.length ? sources.join(' · ') : '--';
+
+            // Positives / Negatives
+            const pos = sent.positives || [];
+            if (pos.length) {
+                document.getElementById('sentiment-positives-col').classList.remove('hidden');
+                document.getElementById('sentiment-positives-list').innerHTML = pos.map(p => `<li>${p}</li>`).join('');
+            } else {
+                document.getElementById('sentiment-positives-col').classList.add('hidden');
+            }
+
+            const neg = sent.negatives || [];
+            if (neg.length) {
+                document.getElementById('sentiment-negatives-col').classList.remove('hidden');
+                document.getElementById('sentiment-negatives-list').innerHTML = neg.map(n => `<li>${n}</li>`).join('');
+            } else {
+                document.getElementById('sentiment-negatives-col').classList.add('hidden');
+            }
+
+            // Summary
+            const sum = sent.summary || [];
+            if (sum.length) {
+                document.getElementById('sentiment-summary-col').classList.remove('hidden');
+                document.getElementById('sentiment-summary-list').innerHTML = sum.map(s => `<li>${s}</li>`).join('');
+            } else {
+                document.getElementById('sentiment-summary-col').classList.add('hidden');
+            }
+
+            // Articles
+            const arts = sent.articles || [];
+            if (arts.length) {
+                document.getElementById('sentiment-articles-col').classList.remove('hidden');
+                document.getElementById('sentiment-articles-list').innerHTML = arts.map(a => `<li><a href="${a.url}" target="_blank" style="color:var(--accent); text-decoration:none;">${a.title}</a> <br><span style="color:var(--text-muted); font-size: 0.8rem;">— ${a.source}</span></li>`).join('');
+            } else {
+                document.getElementById('sentiment-articles-col').classList.add('hidden');
+            }
+
+        } else {
+            document.getElementById('sentiment-section-container').classList.add('hidden');
         }
 
     } catch (err) {
         document.getElementById('ipo-title').innerText = "Error Loading Data";
-        document.getElementById('risks-list').innerHTML = `<li style="color:#ef4444; background:transparent; border:none">${err.message}</li>`;
+        document.getElementById('risks-section-container').classList.remove('hidden');
+        document.getElementById('risks-content').innerHTML = `<div style="color:#ef4444; background:transparent; border:none; padding:1rem;">${err.message}</div>`;
     }
 }
 
 // ── Chart.js Integration ──────────────────────────────────────────────
-function parseNum(val) {
-    if (!val) return null;
-    let cleaned = String(val).replace(/[₹,\s]/g, "").replace(/(cr|crore|lakh|mn|bn|million|billion|%)/gi, "");
-    const parsed = parseFloat(cleaned);
-    return isNaN(parsed) ? null : parsed;
-}
-
 function renderFinancials(financials) {
     const tbody = document.getElementById('financials-body');
     const thead = document.getElementById('financials-head');
@@ -272,16 +532,16 @@ function renderFinancials(financials) {
 
     // Sort by year (ascending for charts)
     const sortedFins = [...financials].sort((a,b) => {
-        let yA = parseNum(a.year) || 0;
-        let yB = parseNum(b.year) || 0;
+        let yA = a.year ? parseInt(String(a.year).replace(/\D/g, '')) || 0 : 0;
+        let yB = b.year ? parseInt(String(b.year).replace(/\D/g, '')) || 0 : 0;
         return yA - yB;
     });
 
     const years = sortedFins.map(f => f.year || 'Unknown');
-    const revenues = sortedFins.map(f => parseNum(f.revenue));
-    const pats = sortedFins.map(f => parseNum(f.pat));
-    const ebitdaMargins = sortedFins.map(f => parseNum(f.ebitda_margin));
-    const patMargins = sortedFins.map(f => parseNum(f.pat_margin));
+    const revenues = sortedFins.map(f => f.revenue);
+    const pats = sortedFins.map(f => f.pat);
+    const ebitdaMargins = sortedFins.map(f => f.ebitda_margin_pct);
+    const patMargins = sortedFins.map(f => f.pat_margin_pct);
 
     // Chart 1: Revenue vs PAT
     const ctxRev = document.getElementById('revenueChart').getContext('2d');
@@ -290,8 +550,8 @@ function renderFinancials(financials) {
         data: {
             labels: years,
             datasets: [
-                { label: 'Revenue (₹ Cr)', data: revenues, backgroundColor: '#3b82f6', borderRadius: 4 },
-                { label: 'PAT (₹ Cr)', data: pats, backgroundColor: '#10b981', borderRadius: 4 }
+                { label: 'Revenue', data: revenues, backgroundColor: '#3b82f6', borderRadius: 4 },
+                { label: 'PAT', data: pats, backgroundColor: '#10b981', borderRadius: 4 }
             ]
         },
         options: {
@@ -327,16 +587,16 @@ function renderFinancials(financials) {
 
     // Render Table (Descending order usually looks better for tables)
     const reversedFins = [...sortedFins].reverse();
-    const cols = ['Year', 'Revenue', 'EBITDA', 'EBITDA Margin', 'PAT', 'PAT Margin', 'EPS', 'CFO'];
+    const cols = ['Year', 'Revenue', 'EBITDA', 'EBITDA Margin %', 'PAT', 'PAT Margin %', 'EPS', 'CFO'];
     cols.forEach(c => {
         const th = document.createElement('th'); th.innerText = c; thead.appendChild(th);
     });
 
     reversedFins.forEach(f => {
         const tr = document.createElement('tr');
-        const vals = [f.year, f.revenue, f.ebitda, f.ebitda_margin, f.pat, f.pat_margin, f.eps, f.cash_flow_ops];
+        const vals = [f.year, f.revenue, f.ebitda, f.ebitda_margin_pct, f.pat, f.pat_margin_pct, f.eps, f.cfo];
         vals.forEach(v => {
-            const td = document.createElement('td'); td.innerText = v || '-'; tr.appendChild(td);
+            const td = document.createElement('td'); td.innerText = (v !== null && v !== undefined) ? v : '—'; tr.appendChild(td);
         });
         tbody.appendChild(tr);
     });

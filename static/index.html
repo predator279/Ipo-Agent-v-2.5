@@ -146,9 +146,140 @@
                             </div>
                         </div>
 
-                        <div class="section-divider">Key Risks</div>
-                        <div class="risks-section glass-subpanel">
-                            <ul id="risks-list"></ul>
+                        <div id="key-metrics-section-container" class="hidden">
+                            <div class="section-divider">Key Metrics</div>
+                            <div class="key-metrics-columns glass-subpanel" style="display: flex; gap: 1.5rem; flex-wrap: wrap;">
+                                <div id="metrics-col-bs" class="metric-column hidden" style="flex: 1; min-width: 250px;">
+                                    <h4 style="margin-top:0">Balance Sheet (Latest Year)</h4>
+                                    <ul id="metrics-bs-list" style="padding-left: 1rem; margin: 0; color: var(--text-muted); font-size: 0.95rem;"></ul>
+                                </div>
+                                <div id="metrics-col-ratios" class="metric-column hidden" style="flex: 1; min-width: 250px;">
+                                    <div id="metrics-ratios-sub" class="hidden">
+                                        <h4 style="margin-top:0">Return Ratios</h4>
+                                        <ul id="metrics-ratios-list" style="padding-left: 1rem; margin: 0 0 1rem 0; color: var(--text-muted); font-size: 0.95rem;"></ul>
+                                    </div>
+                                    <div id="metrics-valuation-sub" class="hidden">
+                                        <h4 style="margin-top:0">Valuation Multiples</h4>
+                                        <ul id="metrics-valuation-list" style="padding-left: 1rem; margin: 0; color: var(--text-muted); font-size: 0.95rem;"></ul>
+                                    </div>
+                                </div>
+                                <div id="metrics-col-kpis" class="metric-column hidden" style="flex: 1; min-width: 250px;">
+                                    <h4 style="margin-top:0">Sector-Specific KPIs</h4>
+                                    <ul id="metrics-kpis-list" style="padding-left: 1rem; margin: 0; color: var(--text-muted); font-size: 0.95rem;"></ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="peer-comparison-section-container" class="hidden">
+                            <div class="section-divider">Peer Comparison</div>
+                            <div class="peer-comparison-section glass-subpanel">
+                                <div class="table-responsive">
+                                    <table id="peer-table" class="ipo-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Company</th>
+                                                <th>P/E</th>
+                                                <th>Revenue</th>
+                                                <th>PAT Margin %</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="peer-tbody"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="objects-issue-section-container" class="hidden">
+                            <div class="section-divider">Objects of the Issue</div>
+                            <div class="objects-issue-layout glass-subpanel" style="display: flex; gap: 2rem; flex-wrap: wrap; align-items: center;">
+                                <div class="objects-chart-col" style="flex: 1; min-width: 300px;">
+                                    <div id="objects-chart-container" class="chart-container" style="height: 250px;">
+                                        <canvas id="objectsChart"></canvas>
+                                    </div>
+                                    <div id="objects-no-chart" class="hidden" style="color:var(--text-muted); padding: 2rem 0; text-align: center;">Amount breakdown not specified.</div>
+                                </div>
+                                <div class="objects-categories-col" style="flex: 1; min-width: 250px;">
+                                    <h4 style="margin-top:0">Categories</h4>
+                                    <div id="objects-categories-list" style="display: flex; flex-wrap: wrap; gap: 0.5rem;"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="management-section-container" class="hidden">
+                            <div class="section-divider">Management & Promoters</div>
+                            <div class="management-section glass-subpanel">
+                                <div class="management-columns" style="display: flex; gap: 2rem; flex-wrap: wrap;">
+                                    <div id="mgmt-key-col" class="hidden" style="flex: 1; min-width: 250px;">
+                                        <h4 style="margin-top:0">Key Management</h4>
+                                        <div id="mgmt-key-list" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
+                                    </div>
+                                    <div id="mgmt-promoters-col" class="hidden" style="flex: 1; min-width: 250px;">
+                                        <h4 style="margin-top:0">Promoters</h4>
+                                        <div id="mgmt-promoters-list" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
+                                    </div>
+                                </div>
+                                <div id="mgmt-litigations" class="hidden" style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="risks-section-container" class="hidden">
+                            <div class="section-divider">Key Risks</div>
+                            <div id="risks-content" class="risks-section glass-subpanel" style="display: flex; flex-direction: column; gap: 1rem;">
+                            </div>
+                        </div>
+
+                        <div id="sentiment-section-container" class="hidden">
+                            <div class="section-divider">Market Sentiment Analysis</div>
+                            <div class="sentiment-section glass-subpanel">
+                                <div class="sentiment-top" style="display: flex; gap: 2rem; flex-wrap: wrap; margin-bottom: 2rem;">
+                                    <div class="sentiment-gauge-col" style="flex: 0 0 250px; text-align: center; position: relative;">
+                                        <div class="chart-container" style="height: 150px; min-width: unset; width: 100%;">
+                                            <canvas id="sentimentGauge"></canvas>
+                                        </div>
+                                        <div style="position: absolute; bottom: 0; width: 100%; text-align: center;">
+                                            <h3 id="sentiment-score-text" style="margin:0; font-size: 2rem;">--</h3>
+                                            <div id="sentiment-label" class="badge" style="margin-top:0.5rem; display: inline-block;">--</div>
+                                        </div>
+                                    </div>
+                                    <div class="sentiment-stats-col" style="flex: 1; min-width: 250px;">
+                                        <h4 style="margin-top:0">Overview</h4>
+                                        <div class="metrics-grid" style="grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));">
+                                            <div class="metric-card glass-subpanel" style="padding: 0.75rem; margin-bottom: 0;"><span>GMP</span><h4 id="sentiment-gmp">--</h4></div>
+                                            <div class="metric-card glass-subpanel" style="padding: 0.75rem; margin-bottom: 0;"><span>Total Sub</span><h4 id="sentiment-sub-total">--</h4></div>
+                                            <div class="metric-card glass-subpanel" style="padding: 0.75rem; margin-bottom: 0;"><span>QIB Sub</span><h4 id="sentiment-sub-qib">--</h4></div>
+                                            <div class="metric-card glass-subpanel" style="padding: 0.75rem; margin-bottom: 0;"><span>NII Sub</span><h4 id="sentiment-sub-nii">--</h4></div>
+                                            <div class="metric-card glass-subpanel" style="padding: 0.75rem; margin-bottom: 0;"><span>Retail Sub</span><h4 id="sentiment-sub-retail">--</h4></div>
+                                        </div>
+                                        <div style="margin-top: 1rem; font-size: 0.85rem; color: var(--text-muted);">
+                                            <strong>Sources:</strong> <span id="sentiment-sources">--</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="sentiment-pros-cons" style="display: flex; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 1.5rem;">
+                                    <div id="sentiment-positives-col" class="hidden" style="flex: 1; min-width: 250px;">
+                                        <h4 style="color: var(--sentiment-positive); margin-top:0;">Positives</h4>
+                                        <ul id="sentiment-positives-list" class="styled-list positive" style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.5rem;"></ul>
+                                    </div>
+                                    <div id="sentiment-negatives-col" class="hidden" style="flex: 1; min-width: 250px;">
+                                        <h4 style="color: var(--sentiment-negative); margin-top:0;">Concerns</h4>
+                                        <ul id="sentiment-negatives-list" class="styled-list negative" style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.5rem;"></ul>
+                                    </div>
+                                </div>
+
+                                <div id="sentiment-summary-col" class="hidden" style="margin-bottom: 1.5rem;">
+                                    <h4 style="margin-top:0">Analyst Summary</h4>
+                                    <ul id="sentiment-summary-list" style="padding-left: 1.2rem; margin: 0; color: var(--text-muted); font-size: 0.95rem;"></ul>
+                                </div>
+
+                                <div id="sentiment-articles-col" class="hidden">
+                                    <details>
+                                        <summary style="cursor: pointer; font-weight: 600; color: var(--accent);">Source Articles</summary>
+                                        <ul id="sentiment-articles-list" style="margin-top: 0.5rem; padding-left: 1.2rem; font-size: 0.9rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 0.4rem;"></ul>
+                                    </details>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
