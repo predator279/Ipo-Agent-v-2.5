@@ -190,6 +190,23 @@ Return ONLY a JSON array with this schema:
 ]
 """
 
+STRENGTHS_PROMPT = """Extract the competitive strengths from the RHP/DRHP document.
+Sort every strength into exactly one of these categories (do not create new ones):
+- Business & Operational Strengths
+- Financial Strengths
+- Management & Promoter Strengths
+- Market & Competitive Strengths
+- Product & Technology Strengths
+- Other Strengths
+
+Each description should be a single self-contained sentence.
+
+Return ONLY a JSON array with this schema:
+[
+  {"category": "<one of the fixed categories above>", "description": "string"}
+]
+"""
+
 
 def _agentic_extraction(llm, sys_prompt: str, user_prompt: str, max_steps=12, progress_callback=None) -> str:
     """Custom tool-calling loop prioritizing Mistral RPS limits."""
@@ -262,7 +279,7 @@ def extract_ipo_profile(vectorstore: Chroma, ipo_name: str, progress_callback=No
     main_raw = _agentic_extraction(llm, USER_SYSTEM_PROMPT, main_user, progress_callback=progress_callback)
     main_json = _parse_json(main_raw)
     
-    if progress_callback: progress_callback("Extracting Risk Factors (Phase 2/3)...")
+    if progress_callback: progress_callback("Extracting Risk Factors & Strengths (Phase 2/3)...")
     
     # 2. Risk Factors Extraction (Lightweight, no tools needed, just vectorstore)
     risk_ctx = vectorstore_search.invoke({"query": "risk factors key risks litigation regulatory"})
@@ -274,6 +291,17 @@ def extract_ipo_profile(vectorstore: Chroma, ipo_name: str, progress_callback=No
         HumanMessage(content=risk_user)
     ])
     risk_json = _parse_json(risk_raw.content)
+    
+    # 2.5 Strengths Extraction
+    strength_ctx = vectorstore_search.invoke({"query": "competitive strengths business advantages key strengths"})
+    strength_user = f"Extract competitive strengths for '{ipo_name}'. RHP Excerpts:\n{strength_ctx}"
+    
+    time.sleep(1.5)
+    strength_raw = llm.invoke([
+        SystemMessage(content=STRENGTHS_PROMPT),
+        HumanMessage(content=strength_user)
+    ])
+    strength_json = _parse_json(strength_raw.content)
     
     if progress_callback: progress_callback("Fetching Sentiment & Finalizing (Phase 3/3)...")
     
@@ -334,6 +362,7 @@ def extract_ipo_profile(vectorstore: Chroma, ipo_name: str, progress_callback=No
     # Assemble Final JSON
     final_profile = main_json
     final_profile["risk_factors"] = risk_json if isinstance(risk_json, list) else []
+    final_profile["strengths"] = strength_json if isinstance(strength_json, list) else []
     final_profile["sentiment"] = sentiment_json
     
     # Ensure meta fields exist
