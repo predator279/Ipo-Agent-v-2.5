@@ -80,19 +80,25 @@ def run_nightly():
                     db_status = cached_record.get("status")
                     protected = cached_record.get("protected", False)
                     q_col = cached_record.get("qdrant_collection", "")
+                    db_meta = cached_record.get("nse_metadata")
                     
                     if db_status == "Past" and nse_status in ["Current", "Upcoming"]:
                         print(f"[{ipo_name}] ANOMALY: DB says Past, but NSE says {nse_status}. Skipping auto-reopen.")
                         continue
                         
                     if db_status == "Past" and nse_status == "Past":
-                        print(f"[{ipo_name}] Already finalized (Past). Skipping entirely.")
+                        if not db_meta:
+                            print(f"[{ipo_name}] Backfilling missing nse_metadata for Past IPO.")
+                            nse_meta = row.fillna("").to_dict()
+                            register_ipo_cached(ipo_name, symbol, nse_status, protected=protected, qdrant_collection=q_col, nse_metadata=nse_meta)
+                        else:
+                            print(f"[{ipo_name}] Already finalized (Past). Skipping entirely.")
                         continue
                     
-                    if db_status != nse_status:
-                        print(f"[{ipo_name}] Status changed from {db_status} to {nse_status}. Updating registry.")
-                        nse_meta = row.fillna("").to_dict()
-                        register_ipo_cached(ipo_name, symbol, nse_status, protected=protected, qdrant_collection=q_col, nse_metadata=nse_meta)
+                    # Always update registry for Current/Upcoming to catch status changes OR live metric updates
+                    print(f"[{ipo_name}] Syncing latest NSE metadata to registry...")
+                    nse_meta = row.fillna("").to_dict()
+                    register_ipo_cached(ipo_name, symbol, nse_status, protected=protected, qdrant_collection=q_col, nse_metadata=nse_meta)
                         
                     if nse_status in ["Current", "Upcoming"]:
                         print(f"[{ipo_name}] Refreshing sentiment analysis for active IPO...")
