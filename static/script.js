@@ -516,6 +516,23 @@ async function fetchIPODetails(ipoName) {
     }
 }
 
+function parseNum(val) {
+    if (!val || val === '-' || val === '—') return null;
+    let cleaned = String(val).toLowerCase().replace(/[₹,\s]/g, "");
+    
+    // Normalize to Crores for the chart
+    let mult = 1;
+    if (cleaned.includes("lakh")) mult = 0.01;
+    else if (cleaned.includes("mn") || cleaned.includes("million")) mult = 0.1;
+    else if (cleaned.includes("bn") || cleaned.includes("billion")) mult = 100;
+    
+    // Strip all text
+    cleaned = cleaned.replace(/(cr|crore|lakhs?|mn|bn|million|billion|%|x)/gi, "");
+    
+    const parsed = parseFloat(cleaned);
+    return isNaN(parsed) ? null : parsed * mult;
+}
+
 // ── Chart.js Integration ──────────────────────────────────────────────
 function renderFinancials(financials) {
     const tbody = document.getElementById('financials-body');
@@ -538,10 +555,10 @@ function renderFinancials(financials) {
     });
 
     const years = sortedFins.map(f => f.year || 'Unknown');
-    const revenues = sortedFins.map(f => f.revenue);
-    const pats = sortedFins.map(f => f.pat);
-    const ebitdaMargins = sortedFins.map(f => f.ebitda_margin_pct);
-    const patMargins = sortedFins.map(f => f.pat_margin_pct);
+    const revenues = sortedFins.map(f => parseNum(f.revenue));
+    const pats = sortedFins.map(f => parseNum(f.pat));
+    const ebitdaMargins = sortedFins.map(f => parseNum(f.ebitda_margin_pct));
+    const patMargins = sortedFins.map(f => parseNum(f.pat_margin_pct));
 
     // Chart 1: Revenue vs PAT
     const ctxRev = document.getElementById('revenueChart').getContext('2d');
