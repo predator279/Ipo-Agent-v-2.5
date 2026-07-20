@@ -74,8 +74,8 @@ USER_SYSTEM_PROMPT = """Extract IPO information into **exactly** the schema belo
 4. **Never fabricate or estimate a plausible-sounding number.** A missing field must stay missing.
 
 ## Global type rules
-- For large financial numbers (e.g., revenue, market cap, pat, ebitda), preserve the exact units from the document using standard abbreviations (e.g., "₹2,772 Cr", "$1.5M", "₹50 Lakhs"). Do NOT attempt to convert these into raw full integers, as that causes mathematical errors.
-- Always include symbols where appropriate ("₹", "%", "x").
+- For large financial numbers (e.g., revenue, market cap, pat, ebitda, issue size), output them as formatted strings with appropriate denominations and currency symbols (e.g., "₹2,772 Cr", "₹50 Lakhs", "$1.5M"). Do NOT convert them into raw full integers with many zeros, as that causes mathematical errors.
+- For ratios and small metrics (e.g., pe, pat_margin_pct, promoter %, lot_size), output them as pure **numbers** (without "%" or "x" symbols).
 - Dates use `YYYY-MM-DD`.
 - Do not output placeholder sentences like "Not disclosed in the provided text" anywhere — use `null`/`[]` per the rule above.
 
@@ -91,12 +91,12 @@ USER_SYSTEM_PROMPT = """Extract IPO information into **exactly** the schema belo
     "issue_size": "string | null",
     "price_band": "string | null",
     "market_cap": "string | null",
-    "lot_size": "string | null",
+    "lot_size": "number | null",
     "face_value": "string | null",
     "fresh_issue": "string | null",
     "offer_for_sale": "string | null",
-    "promoter_holding_pre_pct": "string | null",
-    "promoter_holding_post_pct": "string | null",
+    "promoter_holding_pre_pct": "number | null",
+    "promoter_holding_post_pct": "number | null",
     "bid_open_date": "date | null",
     "bid_close_date": "date | null",
     "listing_date": "date | null"
@@ -113,10 +113,10 @@ USER_SYSTEM_PROMPT = """Extract IPO information into **exactly** the schema belo
         "year": "string, e.g. FY2024",
         "revenue": "string | null",
         "ebitda": "string | null",
-        "ebitda_margin_pct": "string | null",
+        "ebitda_margin_pct": "number | null",
         "pat": "string | null",
-        "pat_margin_pct": "string | null",
-        "eps": "string | null",
+        "pat_margin_pct": "number | null",
+        "eps": "number | null",
         "cfo": "string | null"
       }
     ],
@@ -132,9 +132,9 @@ USER_SYSTEM_PROMPT = """Extract IPO information into **exactly** the schema belo
   "peer_comparison": [
     {
       "name": "string | \"NA\"",
-      "pe": "string | \"NA\"",
+      "pe": "number | \"NA\"",
       "revenue": "string | \"NA\"",
-      "pat_margin_pct": "string | \"NA\""
+      "pat_margin_pct": "number | \"NA\""
     }
   ],
   "objects_of_issue": {
@@ -251,6 +251,60 @@ def _agentic_extraction(llm, sys_prompt: str, user_prompt: str, max_steps=12, pr
     return messages[-1].content if hasattr(messages[-1], 'content') else ""
 
 
+def format_sentiment_data(sentiment_data: dict) -> dict:
+    """Formats the raw sentiment dictionary into the strict JSON schema expected by the UI."""
+    if "error" in sentiment_data:
+        return {
+            "gmp": None, "score": None, "sentiment_label": "Neutral",
+            "summary": [], "positives": [], "negatives": [],
+            "subscription": {"total": None, "qib": None, "nii": None, "retail": None},
+            "articles": [], "sources_used": []
+        }
+        
+    gmp_val = sentiment_data.get("gmp")
+    score_val = sentiment_data.get("score")
+    
+    def _parse_num(val):
+        if val is None: return None
+        v = str(val).lower().replace("₹", "").replace(",", "").replace("%", "").replace("x", "").strip()
+        try:
+            return float(v)
+        except:
+            return None
+            
+    # Handle subscription object
+    sub_raw = sentiment_data.get("subscription_estimate", "")
+    sub_dict = {"total": None, "qib": None, "nii": None, "retail": None}
+    if isinstance(sub_raw, str):
+        # Try to extract numbers from string like "1.21x (Total), 0.29x (QIB)"
+        m_tot = re.search(r'([\d.]+)\s*x?\s*\(total\)', sub_raw, re.I)
+        m_qib = re.search(r'([\d.]+)\s*x?\s*\(qib\)', sub_raw, re.I)
+        m_nii = re.search(r'([\d.]+)\s*x?\s*\(nii\)', sub_raw, re.I)
+        m_ret = re.search(r'([\d.]+)\s*x?\s*\(retail\)', sub_raw, re.I)
+        if m_tot: sub_dict["total"] = f"{m_tot.group(1)}x"
+        if m_qib: sub_dict["qib"] = f"{m_qib.group(1)}x"
+        if m_nii: sub_dict["nii"] = f"{m_nii.group(1)}x"
+        if m_ret: sub_dict["retail"] = f"{m_ret.group(1)}x"
+        
+    sentiment_json = {
+        "gmp": _parse_num(gmp_val),
+        "score": _parse_num(score_val),
+        "sentiment_label": sentiment_data.get("sentiment_label", "Neutral").replace("📉", "").replace("🚀", "").replace("📈", "").strip(),
+        "summary": sentiment_data.get("summary", []),
+        "positives": sentiment_data.get("positives", []),
+        "negatives": sentiment_data.get("negatives", []),
+        "subscription": sub_dict,
+        "articles": sentiment_data.get("articles", []),
+        "sources_used": sentiment_data.get("sources_used", [])
+    }
+    
+    # fallback label fix
+    valid_labels = ["Positive", "Negative", "Neutral"]
+    if sentiment_json["sentiment_label"] not in valid_labels:
+        sentiment_json["sentiment_label"] = "Neutral"
+        
+    return sentiment_json
+
 def extract_ipo_profile(vectorstore: Chroma, ipo_name: str, progress_callback=None) -> dict:
     """
     Main entry point for extraction.
@@ -309,56 +363,7 @@ def extract_ipo_profile(vectorstore: Chroma, ipo_name: str, progress_callback=No
     # 3. Sentiment Extraction (Reuse sentiment_agent)
     # The sentiment agent returns a dict which we inject into the new schema
     sentiment_data = analyze_sentiment(ipo_name)
-    if "error" in sentiment_data:
-        sentiment_json = {
-            "gmp": None, "score": None, "sentiment_label": "Neutral",
-            "summary": [], "positives": [], "negatives": [],
-            "subscription": {"total": None, "qib": None, "nii": None, "retail": None},
-            "articles": [], "sources_used": []
-        }
-    else:
-        # Map old sentiment format to new strict numeric schema
-        gmp_val = sentiment_data.get("gmp")
-        score_val = sentiment_data.get("score")
-        
-        def _parse_num(val):
-            if val is None: return None
-            v = str(val).lower().replace("₹", "").replace(",", "").replace("%", "").replace("x", "").strip()
-            try:
-                return float(v)
-            except:
-                return None
-                
-        # Handle subscription object
-        sub_raw = sentiment_data.get("subscription_estimate", "")
-        sub_dict = {"total": None, "qib": None, "nii": None, "retail": None}
-        if isinstance(sub_raw, str):
-            # Try to extract numbers from string like "1.21x (Total), 0.29x (QIB)"
-            m_tot = re.search(r'([\d.]+)\s*x?\s*\(total\)', sub_raw, re.I)
-            m_qib = re.search(r'([\d.]+)\s*x?\s*\(qib\)', sub_raw, re.I)
-            m_nii = re.search(r'([\d.]+)\s*x?\s*\(nii\)', sub_raw, re.I)
-            m_ret = re.search(r'([\d.]+)\s*x?\s*\(retail\)', sub_raw, re.I)
-            if m_tot: sub_dict["total"] = f"{m_tot.group(1)}x"
-            if m_qib: sub_dict["qib"] = f"{m_qib.group(1)}x"
-            if m_nii: sub_dict["nii"] = f"{m_nii.group(1)}x"
-            if m_ret: sub_dict["retail"] = f"{m_ret.group(1)}x"
-            
-        sentiment_json = {
-            "gmp": _parse_num(gmp_val),
-            "score": _parse_num(score_val),
-            "sentiment_label": sentiment_data.get("sentiment_label", "Neutral").replace("📉", "").replace("🚀", "").replace("📈", "").strip(),
-            "summary": sentiment_data.get("summary", []),
-            "positives": sentiment_data.get("positives", []),
-            "negatives": sentiment_data.get("negatives", []),
-            "subscription": sub_dict,
-            "articles": sentiment_data.get("articles", []),
-            "sources_used": sentiment_data.get("sources_used", [])
-        }
-        
-        # fallback label fix
-        valid_labels = ["Positive", "Negative", "Neutral"]
-        if sentiment_json["sentiment_label"] not in valid_labels:
-            sentiment_json["sentiment_label"] = "Neutral"
+    sentiment_json = format_sentiment_data(sentiment_data)
 
     # Assemble Final JSON
     final_profile = main_json

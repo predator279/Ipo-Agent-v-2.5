@@ -105,10 +105,12 @@ def run_nightly():
                         try:
                             from sentiment_agent import analyze_sentiment
                             from supabase_client import get_cached_profile
-                            new_sentiment = analyze_sentiment(ipo_name)
+                            from ipo_extractor import format_sentiment_data
+                            new_sentiment_raw = analyze_sentiment(ipo_name)
+                            new_sentiment_formatted = format_sentiment_data(new_sentiment_raw)
                             profile = get_cached_profile(ipo_name)
                             if profile:
-                                profile["sentiment"] = new_sentiment
+                                profile["sentiment"] = new_sentiment_formatted
                                 _inject_metrics(profile, row, nse_status)
                                 save_profile(ipo_name, symbol, profile)
                                 print(f"[{ipo_name}] Sentiment and metrics refreshed successfully.")
