@@ -1,670 +1,353 @@
 # ipo_extractor.py
-#
-# Runs at document-load time to extract ALL structured parameters from
-# an RHP/DRHP vectorstore using targeted RAG queries.
-#
-# Architecture:
-#   - Each "extractor" fires a focused retrieval query + LLM extraction prompt
-#   - Results are merged into a single IPOProfile dataclass
-#   - Extraction is parallelised with ThreadPoolExecutor for speed
-#   - Every field degrades gracefully to None — no crashes on missing data
-#   - Results are cached to disk so re-loading is instant
-
 import os
 import json
 import re
-import hashlib
 import time
-from dataclasses import dataclass, field, asdict
 from typing import Optional, List, Dict, Any
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime
 
 from langchain_chroma import Chroma
 from langchain_core.prompts import ChatPromptTemplate
-from agents.tools import get_llm, extract_llm_content, classify_llm_error
+from langchain_core.messages import SystemMessage, HumanMessage, ToolMessage
+from langchain.tools import tool
 
+from agents.tools import get_llm, classify_llm_error
+from sentiment_agent import _fetch_tavily, analyze_sentiment
 
 # ── config ────────────────────────────────────────────────────────────────────
-EXTRACTION_K          = 6    # chunks retrieved per extraction query
+EXTRACTION_K          = 8
 CACHE_DIR             = "ipo_analysis_cache"
-MAX_WORKERS           = 4    # parallel extraction threads
-# Free-tier Gemini 3.5 Flash: 15 RPM (requests per minute).
-# With MAX_WORKERS=4, each thread needs ~1s gap minimum; we use 5s to be safe.
-INTER_REQUEST_DELAY_S = 5    # seconds to sleep after each LLM call
 # ─────────────────────────────────────────────────────────────────────────────
 
-
-# ── data model ────────────────────────────────────────────────────────────────
-
-@dataclass
-class FinancialYear:
-    year: str                    # e.g. "FY2024"
-    revenue: Optional[str]       # e.g. "₹1,234 Cr"
-    ebitda: Optional[str]
-    ebitda_margin: Optional[str] # e.g. "18.2%"
-    pat: Optional[str]
-    pat_margin: Optional[str]
-    eps: Optional[str]
-    cash_flow_ops: Optional[str]
+# Globals for tool context
+_current_vs = None
+_current_ipo_name = None
 
 
-@dataclass
-class BalanceSheet:
-    total_assets: Optional[str]
-    total_liabilities: Optional[str]
-    net_worth: Optional[str]
-    debt_to_equity: Optional[str]
-    current_ratio: Optional[str]
-    working_capital: Optional[str]
+@tool
+def tavily_web_search(query: str) -> str:
+    """Search the web via Tavily for missing IPO details like lot size, market cap, or peer financials."""
+    time.sleep(1.5) # respect rate limit
+    try:
+        results = _fetch_tavily(query, max_results=3)
+        return json.dumps(results)
+    except Exception as e:
+        return f"Search failed: {e}"
 
 
-@dataclass
-class ReturnRatios:
-    roe: Optional[str]
-    roce: Optional[str]
-    roa: Optional[str]
-
-
-@dataclass
-class IPOProfile:
-    # ── Basic Info ────────────────────────────────────────────────────────────
-    company_name:         Optional[str] = None
-    sector:               Optional[str] = None
-    issue_size:           Optional[str] = None
-    fresh_issue:          Optional[str] = None
-    ofs:                  Optional[str] = None
-    price_band:           Optional[str] = None
-    lot_size:             Optional[str] = None
-    listing_exchange:     Optional[str] = None
-    face_value:           Optional[str] = None
-    market_cap:           Optional[str] = None
-
-    # ── Business ──────────────────────────────────────────────────────────────
-    business_model:       Optional[str] = None
-    revenue_streams:      List[str]     = field(default_factory=list)
-    competitive_moat:     Optional[str] = None
-    geographic_presence:  Optional[str] = None
-    tam_sam:              Optional[str] = None
-    customer_segments:    Optional[str] = None
-    industry_growth:      Optional[str] = None
-
-    # ── Financials ────────────────────────────────────────────────────────────
-    financials:           List[FinancialYear] = field(default_factory=list)
-    balance_sheet:        Optional[BalanceSheet] = None
-    return_ratios:        Optional[ReturnRatios] = None
-
-    # ── Valuation ─────────────────────────────────────────────────────────────
-    pe_ratio:             Optional[str] = None
-    pb_ratio:             Optional[str] = None
-    ev_ebitda:            Optional[str] = None
-    peer_comparison:      List[Dict]    = field(default_factory=list)
-
-    # ── Shareholding ──────────────────────────────────────────────────────────
-    promoter_holding_pre:  Optional[str] = None
-    promoter_holding_post: Optional[str] = None
-    anchor_investors:      List[str]     = field(default_factory=list)
-
-    # ── Objects of Issue ─────────────────────────────────────────────────────
-    objects_of_issue:      List[Dict]    = field(default_factory=list)
-
-    # ── Risk Factors ─────────────────────────────────────────────────────────
-    key_risks:             List[str]     = field(default_factory=list)
-
-    # ── Management ───────────────────────────────────────────────────────────
-    promoters:             List[str]     = field(default_factory=list)
-    key_management:        List[str]     = field(default_factory=list)
-    litigations_summary:   Optional[str] = None
-
-    # ── Sector KPIs ──────────────────────────────────────────────────────────
-    sector_kpis:           Dict[str, str] = field(default_factory=dict)
-
-    # ── Meta ──────────────────────────────────────────────────────────────────
-    extraction_warnings:   List[str]     = field(default_factory=list)
-
-
-# ── helpers ───────────────────────────────────────────────────────────────────
-
-def _rag_query(vectorstore: Chroma, query: str, k: int = EXTRACTION_K) -> str:
-    """Retrieve top-k chunks and join their content."""
-    docs = vectorstore.similarity_search(query, k=k)
+@tool
+def vectorstore_search(query: str) -> str:
+    """Search the official RHP document (Red Herring Prospectus) for specific details."""
+    global _current_vs
+    if not _current_vs:
+        return "No document loaded."
+    docs = _current_vs.similarity_search(query, k=EXTRACTION_K)
     return "\n\n---\n\n".join(d.page_content for d in docs)
-
-
-def _get_provider_type(llm) -> str:
-    name = type(llm).__name__.lower()
-    if "openai" in name:
-        base_url = getattr(llm, "openai_api_base", "") or getattr(llm, "base_url", "")
-        if "mistral" in str(base_url).lower():
-            return "mistral"
-        return "openai"
-    if "google" in name:
-        return "gemini"
-    if "groq" in name:
-        return "groq"
-    return "unknown"
-
-
-def _ask_llm(llm, system: str, user: str) -> str:
-    """
-    Single LLM call, returns raw text.
-    Implements a self-healing fallback cascade for extraction:
-      Mistral Small -> Gemini 3.1 Flash-Lite -> Groq Llama 3.3
-    """
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", system),
-        ("human",  "{user}"),
-    ])
-
-    primary_provider = _get_provider_type(llm)
-    candidates = [(primary_provider, llm)]
-
-    # Dynamic fallback list
-    if primary_provider == "mistral":
-        candidates.append(("gemini", get_llm(model_name="gemini-3.1-flash-lite", temperature=0)))
-        candidates.append(("groq", get_llm(provider="groq", temperature=0)))
-    elif primary_provider == "gemini":
-        candidates.append(("groq", get_llm(provider="groq", temperature=0)))
-    elif primary_provider == "groq":
-        candidates.append(("gemini", get_llm(model_name="gemini-3.1-flash-lite", temperature=0)))
-
-    warnings_list = getattr(llm, "warnings", None)
-    errors = []
-
-    for idx, (provider, client) in enumerate(candidates):
-        try:
-            chain = prompt | client
-            result = chain.invoke({"user": user})
-
-            # Pacing sleep based on active model to respect free-tier rate limits
-            if provider == "mistral":
-                time.sleep(2.0)
-            elif provider == "groq":
-                time.sleep(2.0)
-            elif provider == "gemini":
-                time.sleep(0.5)
-
-            return extract_llm_content(result)
-
-        except Exception as exc:
-            err_class = classify_llm_error(exc)
-            err_msg = f"{provider} failed ({err_class}): {str(exc)[:150]}"
-            errors.append(err_msg)
-            if warnings_list is not None:
-                warnings_list.append(err_msg)
-            print(f"  ⚠️  {provider} extraction failed. Trying fallback... {err_class}")
-
-    raise RuntimeError("All configured LLM extractors in cascade failed:\n" + "\n".join(errors))
 
 
 def _parse_json(raw: str) -> Any:
     """Extract and parse the first JSON object/array from a string."""
-    # Try direct parse first
     try:
         return json.loads(raw.strip())
     except Exception:
         pass
-    # Strip markdown fences
     clean = re.sub(r"```(?:json)?", "", raw).replace("```", "").strip()
     try:
         return json.loads(clean)
     except Exception:
         pass
-    # Find first { } block
     m = re.search(r'\{[\s\S]+\}', clean)
     if m:
         try:
             return json.loads(m.group())
         except Exception:
             pass
-    # Find first [ ] block
-    m = re.search(r'\[[\s\S]+\]', clean)
-    if m:
-        try:
-            return json.loads(m.group())
-        except Exception:
-            pass
-    return None
-
-
-_JSON_SYSTEM = (
-    "You are a financial data extraction AI. "
-    "Extract the requested information from the RHP/DRHP excerpts provided. "
-    "Return ONLY valid JSON — no markdown fences, no commentary, no apologies. "
-    "If a value is not found in the text, use null for strings and [] for arrays."
-)
-
-
-# ── individual extractors ─────────────────────────────────────────────────────
-
-def _extract_basic_info(vs: Chroma, llm) -> dict:
-    ctx = _rag_query(vs, "IPO issue size price band lot size face value listing exchange market cap fresh issue OFS")
-    raw = _ask_llm(llm, _JSON_SYSTEM, f"""
-Extract these fields from the RHP excerpts. Return JSON only.
-Schema:
-{{
-  "company_name": "<str>",
-  "sector": "<str>",
-  "issue_size": "<str with unit e.g. ₹1234 Cr>",
-  "fresh_issue": "<str>",
-  "ofs": "<str>",
-  "price_band": "<str e.g. ₹100-120>",
-  "lot_size": "<int as string>",
-  "listing_exchange": "<NSE/BSE/Both>",
-  "face_value": "<str>",
-  "market_cap": "<str>"
-}}
-
-RHP Excerpts:
-{ctx}
-""")
-    return _parse_json(raw) or {}
-
-
-def _extract_business(vs: Chroma, llm) -> dict:
-    ctx = _rag_query(vs, "business model revenue streams products services competitive advantage moat TAM SAM market opportunity industry growth customer segments")
-    raw = _ask_llm(llm, _JSON_SYSTEM, f"""
-Extract these fields. Return JSON only.
-Schema:
-{{
-  "business_model": "<2-3 sentence description of how the company earns money>",
-  "revenue_streams": ["<stream1>", "<stream2>"],
-  "competitive_moat": "<key competitive advantages>",
-  "geographic_presence": "<states/countries where present>",
-  "tam_sam": "<total addressable market and serviceable market if mentioned>",
-  "customer_segments": "<B2B/B2C/Government etc>",
-  "industry_growth": "<industry CAGR or growth rate if mentioned>"
-}}
-
-RHP Excerpts:
-{ctx}
-""")
-    return _parse_json(raw) or {}
-
-
-def _extract_financials(vs: Chroma, llm) -> list:
-    ctx = _rag_query(vs, "revenue total income EBITDA PAT profit after tax EPS earnings per share cash flow from operations FY2022 FY2023 FY2024 restated financials", k=8)
-    raw = _ask_llm(llm, _JSON_SYSTEM, f"""
-Extract 3 years of financial data. Return a JSON ARRAY of objects, one per fiscal year.
-Schema for each item:
-{{
-  "year": "FY20XX",
-  "revenue": "<value with unit>",
-  "ebitda": "<value or null>",
-  "ebitda_margin": "<% or null>",
-  "pat": "<value with unit>",
-  "pat_margin": "<% or null>",
-  "eps": "<value or null>",
-  "cash_flow_ops": "<value or null>"
-}}
-
-Include only years where at least revenue OR PAT is found.
-If margins are not stated, calculate them if possible.
-
-RHP Excerpts:
-{ctx}
-""")
-    result = _parse_json(raw)
-    if isinstance(result, list):
-        return result
-    if isinstance(result, dict):
-        # Sometimes LLM wraps in {data: [...]}
-        for v in result.values():
-            if isinstance(v, list):
-                return v
-    return []
-
-
-def _extract_balance_sheet(vs: Chroma, llm) -> dict:
-    ctx = _rag_query(vs, "total assets total liabilities net worth shareholders equity debt borrowings current ratio working capital debt to equity")
-    raw = _ask_llm(llm, _JSON_SYSTEM, f"""
-Extract balance sheet data (most recent year). Return JSON only.
-Schema:
-{{
-  "total_assets": "<value>",
-  "total_liabilities": "<value>",
-  "net_worth": "<value>",
-  "debt_to_equity": "<ratio>",
-  "current_ratio": "<ratio>",
-  "working_capital": "<value>"
-}}
-
-RHP Excerpts:
-{ctx}
-""")
-    return _parse_json(raw) or {}
-
-
-def _extract_return_ratios(vs: Chroma, llm) -> dict:
-    ctx = _rag_query(vs, "ROE return on equity ROCE return on capital employed ROA return on assets")
-    raw = _ask_llm(llm, _JSON_SYSTEM, f"""
-Extract return ratios (most recent year). Return JSON only.
-Schema:
-{{
-  "roe": "<value%>",
-  "roce": "<value%>",
-  "roa": "<value%>"
-}}
-
-RHP Excerpts:
-{ctx}
-""")
-    return _parse_json(raw) or {}
-
-
-def _extract_valuation(vs: Chroma, llm) -> dict:
-    ctx = _rag_query(vs, "P/E ratio price earnings EV EBITDA price book peer comparison listed peers valuation")
-    raw = _ask_llm(llm, _JSON_SYSTEM, f"""
-Extract valuation metrics. Return JSON only.
-Schema:
-{{
-  "pe_ratio": "<value or range>",
-  "pb_ratio": "<value>",
-  "ev_ebitda": "<value>",
-  "peer_comparison": [
-    {{"name": "<peer company>", "pe": "<value>", "revenue": "<value>", "pat_margin": "<value>"}}
-  ]
-}}
-
-RHP Excerpts:
-{ctx}
-""")
-    return _parse_json(raw) or {}
-
-
-def _extract_shareholding(vs: Chroma, llm) -> dict:
-    ctx = _rag_query(vs, "promoter shareholding pre IPO post IPO anchor investors lock-in period institutional investors")
-    raw = _ask_llm(llm, _JSON_SYSTEM, f"""
-Extract shareholding info. Return JSON only.
-Schema:
-{{
-  "promoter_holding_pre": "<% before IPO>",
-  "promoter_holding_post": "<% after IPO>",
-  "anchor_investors": ["<name1>", "<name2>"],
-  "promoters": ["<name1>", "<name2>"]
-}}
-
-RHP Excerpts:
-{ctx}
-""")
-    return _parse_json(raw) or {}
-
-
-def _extract_objects_of_issue(vs: Chroma, llm) -> list:
-    ctx = _rag_query(vs, "objects of the issue utilisation of proceeds debt repayment capex expansion working capital general corporate")
-    raw = _ask_llm(llm, _JSON_SYSTEM, f"""
-Extract how the IPO proceeds will be used. Return a JSON ARRAY.
-Schema:
-[
-  {{"purpose": "<description>", "amount": "<value or % if mentioned>", "category": "debt_repayment|expansion|working_capital|acquisition|general_corporate|other"}}
-]
-
-RHP Excerpts:
-{ctx}
-""")
-    result = _parse_json(raw)
-    return result if isinstance(result, list) else []
-
-
-def _extract_risks(vs: Chroma, llm) -> list:
-    ctx = _rag_query(vs, "risk factors key risks litigation regulatory concentration dependency losses cash burn", k=8)
-    raw = _ask_llm(llm, _JSON_SYSTEM, f"""
-Extract the 8-10 most important risk factors from the RHP.
-Return a JSON ARRAY of strings. Each string should be a concise 1-2 sentence risk.
-
-RHP Excerpts:
-{ctx}
-""")
-    result = _parse_json(raw)
-    if isinstance(result, list):
-        return [r if isinstance(r, str) else str(r) for r in result[:10]]
-    return []
-
-
-def _extract_management(vs: Chroma, llm) -> dict:
-    ctx = _rag_query(vs, "managing director CEO chairman board of directors key management personnel promoter background experience litigation legal proceedings")
-    raw = _ask_llm(llm, _JSON_SYSTEM, f"""
-Extract management information. Return JSON only.
-Schema:
-{{
-  "key_management": ["<Name — Role>", "<Name — Role>"],
-  "litigations_summary": "<brief summary of outstanding litigations or null>"
-}}
-
-RHP Excerpts:
-{ctx}
-""")
-    return _parse_json(raw) or {}
-
-
-def _extract_sector_kpis(vs: Chroma, llm, sector: Optional[str]) -> dict:
-    """
-    Extract sector-specific operational KPIs based on detected sector.
-    """
-    sector_lower = (sector or "").lower()
-
-    if any(w in sector_lower for w in ["tech", "saas", "software", "it"]):
-        query = "ARR MRR customer retention CAC LTV net revenue retention"
-        schema = '{"ARR": null, "MRR": null, "customer_retention": null, "CAC": null, "LTV": null}'
-    elif any(w in sector_lower for w in ["bank", "nbfc", "finance", "lending"]):
-        query = "NPA gross NPA net NPA CASA ratio capital adequacy AUM"
-        schema = '{"gross_npa": null, "net_npa": null, "casa_ratio": null, "capital_adequacy": null, "aum": null}'
-    elif any(w in sector_lower for w in ["manufactur", "industrial", "auto"]):
-        query = "capacity utilization production volume order book plant"
-        schema = '{"capacity_utilization": null, "production_volume": null, "order_book": null}'
-    elif any(w in sector_lower for w in ["retail", "consumer", "ecommerce", "d2c"]):
-        query = "same store sales growth number of stores GMV repeat customers active users"
-        schema = '{"same_store_sales_growth": null, "store_count": null, "gmv": null, "repeat_customer_rate": null}'
-    elif any(w in sector_lower for w in ["pharma", "health", "hospital"]):
-        query = "ANDA filings regulated markets EBITDA per bed occupancy rate"
-        schema = '{"anda_filings": null, "regulated_markets_revenue": null, "occupancy_rate": null}'
-    else:
-        # Generic operational metrics
-        query = "key performance indicators operational metrics market share"
-        schema = '{"market_share": null, "key_metric_1": null, "key_metric_2": null}'
-
-    ctx = _rag_query(vs, query)
-    raw = _ask_llm(llm, _JSON_SYSTEM, f"""
-Extract these sector-specific KPIs from the RHP excerpts.
-Return JSON with this schema (use null for missing values):
-{schema}
-
-RHP Excerpts:
-{ctx}
-""")
-    result = _parse_json(raw)
-    if isinstance(result, dict):
-        # Remove null entries
-        return {k: v for k, v in result.items() if v is not None}
     return {}
 
 
-# ── main extraction orchestrator ──────────────────────────────────────────────
+USER_SYSTEM_PROMPT = """Extract IPO information into **exactly** the schema below — same keys, same nesting, same types — for every IPO, regardless of industry. Never add extra top-level keys. Never rename keys. Never invent new categories where an enum is specified.
 
-def extract_ipo_profile(
-    vectorstore: Chroma,
-    ipo_name: str,
-    progress_callback=None,   # optional callable(message: str)
-) -> IPOProfile:
+## Source priority (apply to every field)
+1. **Primary source**: the RHP/DRHP document text for this IPO (use `vectorstore_search`).
+2. **Fallback**: if a field is not present or not clearly stated in the RHP/DRHP, search Tavily for it (e.g. `"<company name> IPO lot size"`, `"<company name> IPO market cap"`).
+3. **If still unavailable after both**: use `null` for scalar fields, `[]` for list fields — **except** `peer_comparison` fields, which use the string `"NA"`.
+4. **Never fabricate or estimate a plausible-sounding number.** A missing field must stay missing.
+
+## Global type rules
+- Any field that is inherently numeric (gmp, score, pe, revenue, market_cap, pat_margin_pct, promoter %, subscription multiples, etc.) must be output as a **number**, with no "x", "₹", "Cr", or "%" characters embedded in the value. Put units in field names/labels, not in the value.
+- Dates use `YYYY-MM-DD`.
+- Do not output placeholder sentences like "Not disclosed in the provided text" anywhere — use `null`/`[]` per the rule above.
+
+## Schema
+{
+  "meta": {
+    "company_name": "string",
+    "slug": "string",
+    "exchange": "string",
+    "last_updated": "ISO 8601 timestamp"
+  },
+  "basic_info": {
+    "issue_size": "string | null",
+    "price_band": "string | null",
+    "market_cap": "number | null",
+    "lot_size": "number | null",
+    "face_value": "number | null",
+    "fresh_issue": "string | null",
+    "offer_for_sale": "string | null",
+    "promoter_holding_pre_pct": "number | null",
+    "promoter_holding_post_pct": "number | null",
+    "bid_open_date": "date | null",
+    "bid_close_date": "date | null",
+    "listing_date": "date | null"
+  },
+  "business_overview": {
+    "business_model": "string | null",
+    "competitive_moat": "string | null",
+    "revenue_streams": ["string"],
+    "customer_segments": ["string"]
+  },
+  "financial_summary": {
+    "yearly_financials": [
+      {
+        "year": "string, e.g. FY2024",
+        "revenue": "number | null",
+        "ebitda": "number | null",
+        "ebitda_margin_pct": "number | null",
+        "pat": "number | null",
+        "pat_margin_pct": "number | null",
+        "eps": "number | null",
+        "cfo": "number | null"
+      }
+    ],
+    "key_metrics": {
+      "balance_sheet": [ {"label": "string", "value": "string"} ],
+      "return_ratios": [ {"label": "string", "value": "string"} ],
+      "valuation_multiples": [ {"label": "string", "value": "string"} ],
+      "sector_kpis": [ {"label": "string", "value": "string"} ]
+    },
+    "ipo_structure": "string | null",
+    "pre_ipo_placements": "string | null"
+  },
+  "peer_comparison": [
+    {
+      "name": "string | \"NA\"",
+      "pe": "number | \"NA\"",
+      "revenue": "number | \"NA\"",
+      "pat_margin_pct": "number | \"NA\""
+    }
+  ],
+  "objects_of_issue": {
+    "total_amount": "string | null",
+    "breakdown": [ {"purpose": "string", "amount": "number | null"} ],
+    "categories": ["string"]
+  },
+  "management": {
+    "key_management": [ {"name": "string", "role": "string"} ],
+    "promoters": [ {"name": "string", "type": "string | null"} ],
+    "litigations": {
+      "status_summary": "string | null",
+      "details": "string | null"
+    }
+  },
+  "company_overview": {
+    "name": "string",
+    "industry": "string | null",
+    "ipo_status": "string | null",
+    "headquarters": {
+      "corporate_office": "string | null",
+      "registered_office": "string | null"
+    },
+    "incorporation_year": "number | null"
+  }
+}
+
+## Field-specific instructions
+- `basic_info`: Pull from RHP first. If missing, search Tavily before falling back to null.
+- `peer_comparison`: Try RHP first, then Tavily. If missing, output string "NA".
+- `financial_summary.key_metrics`: Extract generic {label, value} arrays based on the RHP's key metrics. Don't invent metrics.
+- `financial_summary.yearly_financials`: 3 fiscal years typically. Null for missing line items.
+
+## Output requirements
+Return **only** the JSON object — no markdown fences, no commentary.
+Every key in the schema above must be present in the output, even when its value is null or []."""
+
+RISK_FACTORS_PROMPT = """Extract the risk factors from the RHP/DRHP document.
+Sort every risk factor into exactly one of these categories (do not create new ones):
+- Business & Operational Risks
+- Financial Risks
+- Regulatory & Legal Risks
+- Market & Liquidity Risks
+- Offer-Related Risks
+- Management & Governance Risks
+- Industry & Competition Risks
+- Other Risks
+
+Each description should be a single self-contained sentence.
+
+Return ONLY a JSON array with this schema:
+[
+  {"category": "<one of the fixed categories above>", "description": "string"}
+]
+"""
+
+
+def _agentic_extraction(llm, sys_prompt: str, user_prompt: str, max_steps=12, progress_callback=None) -> str:
+    """Custom tool-calling loop prioritizing Mistral RPS limits."""
+    tools = [tavily_web_search, vectorstore_search]
+    llm_with_tools = llm.bind_tools(tools)
+    
+    messages = [
+        SystemMessage(content=sys_prompt),
+        HumanMessage(content=user_prompt)
+    ]
+    
+    for i in range(max_steps):
+        time.sleep(1.5) # Global rate limit buffer for Mistral
+        
+        try:
+            response = llm_with_tools.invoke(messages)
+            messages.append(response)
+            
+            if not response.tool_calls:
+                return response.content
+                
+            for tool_call in response.tool_calls:
+                if progress_callback:
+                    progress_callback(f"Running tool: {tool_call['name']}...")
+                    
+                if tool_call['name'] == 'tavily_web_search':
+                    res = tavily_web_search.invoke(tool_call['args'])
+                elif tool_call['name'] == 'vectorstore_search':
+                    res = vectorstore_search.invoke(tool_call['args'])
+                else:
+                    res = "Unknown tool"
+                
+                messages.append(ToolMessage(content=res, tool_call_id=tool_call['id']))
+                
+        except Exception as exc:
+            print(f"⚠️ Agent step failed: {exc}")
+            # Try to gracefully exit if it's a rate limit or terminal error
+            break
+            
+    # If it exits the loop without returning, try one last forced generation
+    return messages[-1].content if hasattr(messages[-1], 'content') else ""
+
+
+def extract_ipo_profile(vectorstore: Chroma, ipo_name: str, progress_callback=None) -> dict:
     """
-    Runs all extractors in parallel against the vectorstore and assembles
-    a complete IPOProfile. Cached to disk — second call is instant.
+    Main entry point for extraction.
     """
+    global _current_vs, _current_ipo_name
+    _current_vs = vectorstore
+    _current_ipo_name = ipo_name
+    
     os.makedirs(CACHE_DIR, exist_ok=True)
     safe = re.sub(r"[^a-zA-Z0-9_-]", "_", ipo_name)
     cache_path = os.path.join(CACHE_DIR, f"{safe}_profile.json")
 
-    # ── load from cache ───────────────────────────────────────────────────────
     if os.path.exists(cache_path):
-        if progress_callback:
-            progress_callback("Loading cached IPO profile…")
+        if progress_callback: progress_callback("Loading cached IPO profile…")
         try:
             with open(cache_path) as f:
-                raw = json.load(f)
-            print(f"✅ Loaded cached profile for '{ipo_name}'")
-            return _dict_to_profile(raw)
-        except Exception as e:
-            print(f"⚠️  Cache read failed ({e}), re-extracting.")
-
-    if progress_callback:
-        progress_callback("Starting structured extraction from RHP…")
+                return json.load(f)
+        except Exception:
+            pass
 
     llm = get_llm(purpose="extraction", temperature=0)
-    profile = IPOProfile()
-    warnings = []
     
-    # Attach warnings to collect fallback notifications dynamically
-    llm.warnings = warnings
-
-    # Set workers: 1 for sequential Mistral/Groq, MAX_WORKERS for parallel Gemini
-    primary_provider = _get_provider_type(llm)
-    workers = 1 if primary_provider in ("mistral", "groq") else MAX_WORKERS
-
-    if progress_callback:
-        style = "sequential (2s gap)" if workers == 1 else "parallel"
-        progress_callback(f"Starting extraction from RHP using {primary_provider} {style}...")
-
-    # ── define extraction tasks ───────────────────────────────────────────────
-    tasks = {
-        "basic":        lambda: _extract_basic_info(vectorstore, llm),
-        "business":     lambda: _extract_business(vectorstore, llm),
-        "financials":   lambda: _extract_financials(vectorstore, llm),
-        "balance":      lambda: _extract_balance_sheet(vectorstore, llm),
-        "ratios":       lambda: _extract_return_ratios(vectorstore, llm),
-        "valuation":    lambda: _extract_valuation(vectorstore, llm),
-        "shareholding": lambda: _extract_shareholding(vectorstore, llm),
-        "objects":      lambda: _extract_objects_of_issue(vectorstore, llm),
-        "risks":        lambda: _extract_risks(vectorstore, llm),
-        "management":   lambda: _extract_management(vectorstore, llm),
-    }
-
-    results = {}
-    completed = 0
-
-    with ThreadPoolExecutor(max_workers=workers) as executor:
-        future_to_key = {executor.submit(fn): key for key, fn in tasks.items()}
-        for future in as_completed(future_to_key):
-            key = future_to_key[future]
+    if progress_callback: progress_callback("Starting Agentic Extraction (Phase 1/3)...")
+    
+    # 1. Main Agentic Extraction
+    main_user = f"Extract the profile for '{ipo_name}'. Start by searching the vectorstore for 'basic info', 'financials', 'peers', 'management'. Use tavily_web_search for missing facts."
+    main_raw = _agentic_extraction(llm, USER_SYSTEM_PROMPT, main_user, progress_callback=progress_callback)
+    main_json = _parse_json(main_raw)
+    
+    if progress_callback: progress_callback("Extracting Risk Factors (Phase 2/3)...")
+    
+    # 2. Risk Factors Extraction (Lightweight, no tools needed, just vectorstore)
+    risk_ctx = vectorstore_search.invoke({"query": "risk factors key risks litigation regulatory"})
+    risk_user = f"Extract risk factors for '{ipo_name}'. RHP Excerpts:\n{risk_ctx}"
+    
+    time.sleep(1.5)
+    risk_raw = llm.invoke([
+        SystemMessage(content=RISK_FACTORS_PROMPT),
+        HumanMessage(content=risk_user)
+    ])
+    risk_json = _parse_json(risk_raw.content)
+    
+    if progress_callback: progress_callback("Fetching Sentiment & Finalizing (Phase 3/3)...")
+    
+    # 3. Sentiment Extraction (Reuse sentiment_agent)
+    # The sentiment agent returns a dict which we inject into the new schema
+    sentiment_data = analyze_sentiment(ipo_name)
+    if "error" in sentiment_data:
+        sentiment_json = {
+            "gmp": None, "score": None, "sentiment_label": "Neutral",
+            "summary": [], "positives": [], "negatives": [],
+            "subscription": {"total": None, "qib": None, "nii": None, "retail": None},
+            "articles": [], "sources_used": []
+        }
+    else:
+        # Map old sentiment format to new strict numeric schema
+        gmp_val = sentiment_data.get("gmp")
+        score_val = sentiment_data.get("score")
+        
+        def _parse_num(val):
+            if val is None: return None
+            v = str(val).lower().replace("₹", "").replace(",", "").replace("%", "").replace("x", "").strip()
             try:
-                results[key] = future.result()
-                completed += 1
-                if progress_callback:
-                    progress_callback(f"Extracted: {key} ({completed}/{len(tasks)})")
-                print(f"  ✅ {key}")
-            except Exception as exc:
-                warnings.append(f"{key}: {exc}")
-                results[key] = {}
-                print(f"  ⚠️  {key} failed: {exc}")
+                return float(v)
+            except:
+                return None
+                
+        # Handle subscription object
+        sub_raw = sentiment_data.get("subscription_estimate", "")
+        sub_dict = {"total": None, "qib": None, "nii": None, "retail": None}
+        if isinstance(sub_raw, str):
+            # Try to extract numbers from string like "1.21x (Total), 0.29x (QIB)"
+            m_tot = re.search(r'([\d.]+)\s*x?\s*\(total\)', sub_raw, re.I)
+            m_qib = re.search(r'([\d.]+)\s*x?\s*\(qib\)', sub_raw, re.I)
+            m_nii = re.search(r'([\d.]+)\s*x?\s*\(nii\)', sub_raw, re.I)
+            m_ret = re.search(r'([\d.]+)\s*x?\s*\(retail\)', sub_raw, re.I)
+            if m_tot: sub_dict["total"] = float(m_tot.group(1))
+            if m_qib: sub_dict["qib"] = float(m_qib.group(1))
+            if m_nii: sub_dict["nii"] = float(m_nii.group(1))
+            if m_ret: sub_dict["retail"] = float(m_ret.group(1))
+            
+        sentiment_json = {
+            "gmp": _parse_num(gmp_val),
+            "score": _parse_num(score_val),
+            "sentiment_label": sentiment_data.get("sentiment_label", "Neutral").replace("📉", "").replace("🚀", "").replace("📈", "").strip(),
+            "summary": sentiment_data.get("summary", []),
+            "positives": sentiment_data.get("positives", []),
+            "negatives": sentiment_data.get("negatives", []),
+            "subscription": sub_dict,
+            "articles": sentiment_data.get("articles", []),
+            "sources_used": sentiment_data.get("sources_used", [])
+        }
+        
+        # fallback label fix
+        valid_labels = ["Positive", "Negative", "Neutral"]
+        if sentiment_json["sentiment_label"] not in valid_labels:
+            sentiment_json["sentiment_label"] = "Neutral"
 
-    # ── assemble profile ──────────────────────────────────────────────────────
-    b = results.get("basic", {}) or {}
-    profile.company_name        = b.get("company_name") or ipo_name
-    profile.sector              = b.get("sector")
-    profile.issue_size          = b.get("issue_size")
-    profile.fresh_issue         = b.get("fresh_issue")
-    profile.ofs                 = b.get("ofs")
-    profile.price_band          = b.get("price_band")
-    profile.lot_size            = b.get("lot_size")
-    profile.listing_exchange    = b.get("listing_exchange")
-    profile.face_value          = b.get("face_value")
-    profile.market_cap          = b.get("market_cap")
-
-    biz = results.get("business", {}) or {}
-    profile.business_model      = biz.get("business_model")
-    profile.revenue_streams     = biz.get("revenue_streams") or []
-    profile.competitive_moat    = biz.get("competitive_moat")
-    profile.geographic_presence = biz.get("geographic_presence")
-    profile.tam_sam             = biz.get("tam_sam")
-    profile.customer_segments   = biz.get("customer_segments")
-    profile.industry_growth     = biz.get("industry_growth")
-
-    fin_list = results.get("financials", []) or []
-    profile.financials = [
-        FinancialYear(
-            year          = f.get("year", ""),
-            revenue       = f.get("revenue"),
-            ebitda        = f.get("ebitda"),
-            ebitda_margin = f.get("ebitda_margin"),
-            pat           = f.get("pat"),
-            pat_margin    = f.get("pat_margin"),
-            eps           = f.get("eps"),
-            cash_flow_ops = f.get("cash_flow_ops"),
-        )
-        for f in fin_list if isinstance(f, dict)
-    ]
-
-    bs = results.get("balance", {}) or {}
-    profile.balance_sheet = BalanceSheet(
-        total_assets    = bs.get("total_assets"),
-        total_liabilities = bs.get("total_liabilities"),
-        net_worth       = bs.get("net_worth"),
-        debt_to_equity  = bs.get("debt_to_equity"),
-        current_ratio   = bs.get("current_ratio"),
-        working_capital = bs.get("working_capital"),
-    )
-
-    rr = results.get("ratios", {}) or {}
-    profile.return_ratios = ReturnRatios(
-        roe  = rr.get("roe"),
-        roce = rr.get("roce"),
-        roa  = rr.get("roa"),
-    )
-
-    val = results.get("valuation", {}) or {}
-    profile.pe_ratio        = val.get("pe_ratio")
-    profile.pb_ratio        = val.get("pb_ratio")
-    profile.ev_ebitda       = val.get("ev_ebitda")
-    profile.peer_comparison = val.get("peer_comparison") or []
-
-    sh = results.get("shareholding", {}) or {}
-    profile.promoter_holding_pre  = sh.get("promoter_holding_pre")
-    profile.promoter_holding_post = sh.get("promoter_holding_post")
-    profile.anchor_investors      = sh.get("anchor_investors") or []
-    profile.promoters             = sh.get("promoters") or []
-
-    profile.objects_of_issue = results.get("objects", []) or []
-    profile.key_risks        = results.get("risks", []) or []
-
-    mgmt = results.get("management", {}) or {}
-    profile.key_management       = mgmt.get("key_management") or []
-    profile.litigations_summary  = mgmt.get("litigations_summary")
-
-    # Sector KPIs — run after we know the sector
-    try:
-        profile.sector_kpis = _extract_sector_kpis(vectorstore, llm, profile.sector)
-        print("  ✅ sector_kpis")
-    except Exception as exc:
-        warnings.append(f"sector_kpis: {exc}")
-
-    profile.extraction_warnings = warnings
-
-    # ── cache to disk ─────────────────────────────────────────────────────────
+    # Assemble Final JSON
+    final_profile = main_json
+    final_profile["risk_factors"] = risk_json if isinstance(risk_json, list) else []
+    final_profile["sentiment"] = sentiment_json
+    
+    # Ensure meta fields exist
+    if "meta" not in final_profile:
+        final_profile["meta"] = {}
+    final_profile["meta"]["company_name"] = ipo_name
+    final_profile["meta"]["slug"] = safe
+    final_profile["meta"]["last_updated"] = datetime.now().isoformat()
+    
+    # Save cache
     try:
         with open(cache_path, "w") as f:
-            json.dump(_profile_to_dict(profile), f, indent=2)
-        print(f"✅ Profile cached to {cache_path}")
+            json.dump(final_profile, f, indent=2)
     except Exception as e:
-        print(f"⚠️  Could not cache profile: {e}")
-
-    return profile
-
-
-# ── serialisation helpers ─────────────────────────────────────────────────────
-
-def _profile_to_dict(p: IPOProfile) -> dict:
-    d = asdict(p)
-    return d
-
-
-def _dict_to_profile(d: dict) -> IPOProfile:
-    """Reconstruct IPOProfile from a plain dict (from JSON cache)."""
-    p = IPOProfile()
-    for k, v in d.items():
-        if k == "financials" and isinstance(v, list):
-            setattr(p, k, [FinancialYear(**f) for f in v if isinstance(f, dict)])
-        elif k == "balance_sheet" and isinstance(v, dict):
-            setattr(p, k, BalanceSheet(**v))
-        elif k == "return_ratios" and isinstance(v, dict):
-            setattr(p, k, ReturnRatios(**v))
-        else:
-            setattr(p, k, v)
-    return p
+        print(f"Failed to cache profile: {e}")
+        
+    return final_profile

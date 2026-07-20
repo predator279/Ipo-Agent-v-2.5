@@ -166,42 +166,47 @@ async function fetchIPODetails(ipoName) {
         if (!response.ok) throw new Error("Failed to load details");
         const data = await response.json();
         
-        document.getElementById('ipo-sector').innerText = data.sector || (data.company_overview && data.company_overview.industry) || 'Sector unclassified';
+        const co = data.company_overview || {};
+        const meta = data.meta || {};
+        const basic = data.basic_info || {};
+        const biz = data.business_overview || {};
+        const fin = data.financial_summary || {};
+        
+        document.getElementById('ipo-sector').innerText = data.sector || co.industry || 'Sector unclassified';
 
         // Populate Top Metrics (handling both NSE live injected and LLM extracted data)
-        document.getElementById('metric-issue-size').innerText = data.issue_size || '--';
-        document.getElementById('metric-price').innerText = data.price_band || '--';
-        document.getElementById('metric-market-cap').innerText = data.market_cap || '--';
-        document.getElementById('metric-lot').innerText = data.lot_size || '--';
-        document.getElementById('metric-exchange').innerText = data.exchange || data.listing_exchange || '--';
-        document.getElementById('metric-fresh-issue').innerText = data.fresh_issue || '--';
-        document.getElementById('metric-ofs').innerText = data.ofs || '--';
-        document.getElementById('metric-face-value').innerText = data.face_value || '--';
-        document.getElementById('metric-promoter-pre').innerText = data.promoter_holding_pre || '--';
-        document.getElementById('metric-promoter-post').innerText = data.promoter_holding_post || '--';
+        document.getElementById('metric-issue-size').innerText = basic.issue_size || data.issue_size || '--';
+        document.getElementById('metric-price').innerText = basic.price_band || data.price_band || '--';
+        document.getElementById('metric-market-cap').innerText = basic.market_cap || data.market_cap || '--';
+        document.getElementById('metric-lot').innerText = basic.lot_size || data.lot_size || '--';
+        document.getElementById('metric-exchange').innerText = meta.exchange || data.exchange || data.listing_exchange || '--';
+        document.getElementById('metric-fresh-issue').innerText = basic.fresh_issue || data.fresh_issue || '--';
+        document.getElementById('metric-ofs').innerText = basic.offer_for_sale || data.ofs || '--';
+        document.getElementById('metric-face-value').innerText = basic.face_value || data.face_value || '--';
+        document.getElementById('metric-promoter-pre').innerText = basic.promoter_holding_pre_pct || data.promoter_holding_pre || '--';
+        document.getElementById('metric-promoter-post').innerText = basic.promoter_holding_post_pct || data.promoter_holding_post || '--';
 
         // Populate Business Model
         let bizHtml = '';
-        if (data.business_model) bizHtml += `<p><strong>Business Model:</strong><br>${data.business_model}</p>`;
-        if (data.competitive_moat) bizHtml += `<p><strong>Competitive Moat:</strong><br>${data.competitive_moat}</p>`;
-        if (data.revenue_streams && Array.isArray(data.revenue_streams) && data.revenue_streams.length > 0) {
-            bizHtml += `<p><strong>Revenue Streams:</strong><br>` + data.revenue_streams.map(r => `<span class="badge" style="margin-right:5px">${r}</span>`).join('') + `</p>`;
+        if (biz.business_model || data.business_model) bizHtml += `<p><strong>Business Model:</strong><br>${biz.business_model || data.business_model}</p>`;
+        if (biz.competitive_moat || data.competitive_moat) bizHtml += `<p><strong>Competitive Moat:</strong><br>${biz.competitive_moat || data.competitive_moat}</p>`;
+        
+        let streams = biz.revenue_streams || data.revenue_streams;
+        if (streams && Array.isArray(streams) && streams.length > 0) {
+            bizHtml += `<p><strong>Revenue Streams:</strong><br>` + streams.map(r => `<span class="badge" style="margin-right:5px">${r}</span>`).join('') + `</p>`;
         }
         
         // Alternative schema fallback
-        if (data.company_overview) {
-            const co = data.company_overview;
-            if (co.industry && !data.sector) bizHtml += `<p><strong>Industry:</strong><br>${co.industry}</p>`;
-            if (co.leadership) bizHtml += `<p><strong>Leadership:</strong><br>${co.leadership}</p>`;
-            if (co.ipo_status) bizHtml += `<p><strong>IPO Status:</strong><br>${co.ipo_status}</p>`;
-        }
+        if (co.industry && !data.sector) bizHtml += `<p><strong>Industry:</strong><br>${co.industry}</p>`;
+        if (co.leadership) bizHtml += `<p><strong>Leadership:</strong><br>${co.leadership}</p>`;
+        if (co.ipo_status) bizHtml += `<p><strong>IPO Status:</strong><br>${co.ipo_status}</p>`;
         
         document.getElementById('business-model-content').innerHTML = bizHtml || '<p style="color:var(--text-muted)">No business details available.</p>';
 
         // Populate Financials Table & Charts
-        // Some schemas use `financials` array, others use `financial_summary` object
-        let financialsData = data.financials;
-        if (!financialsData && data.financial_summary) {
+        // Handle new schema `fin.yearly_financials`, older `financials`, and alternate `financial_summary.revenue_fy_latest`
+        let financialsData = fin.yearly_financials || data.financials;
+        if (!financialsData && data.financial_summary && data.financial_summary.revenue_fy_latest) {
             // Attempt to build a dummy array if it's the alternate schema just so something renders
             financialsData = [{
                 year: 'Latest',
@@ -210,16 +215,28 @@ async function fetchIPODetails(ipoName) {
                 ebitda: '-', ebitda_margin: '-', pat_margin: '-', eps: '-', cash_flow_ops: '-'
             }];
         }
+        
+        // Ensure mapping for new schema fields in charts logic
+        if (financialsData && Array.isArray(financialsData)) {
+            financialsData = financialsData.map(f => ({
+                ...f,
+                ebitda_margin: f.ebitda_margin_pct || f.ebitda_margin,
+                pat_margin: f.pat_margin_pct || f.pat_margin,
+                cash_flow_ops: f.cfo || f.cash_flow_ops
+            }));
+        }
+        
         renderFinancials(financialsData);
 
         // Populate Risks
         const risksList = document.getElementById('risks-list');
         risksList.innerHTML = '';
-        const risksArr = data.key_risks || data.risk_factors;
-        if (risksArr && Array.isArray(risksArr)) {
+        const risksArr = data.risk_factors || data.key_risks;
+        if (risksArr && Array.isArray(risksArr) && risksArr.length > 0) {
             risksArr.forEach(risk => {
                 const li = document.createElement('li');
-                li.innerText = risk;
+                // new schema has {category, description}, old has string
+                li.innerHTML = typeof risk === 'object' ? `<strong>${risk.category}:</strong> ${risk.description}` : risk;
                 risksList.appendChild(li);
             });
         } else {

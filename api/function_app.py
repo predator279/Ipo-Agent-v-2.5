@@ -68,16 +68,17 @@ def get_ipo_profile(req: func.HttpRequest) -> func.HttpResponse:
                 # Merge NSE hard facts if present
                 if nse_data and "issueInfo" in nse_data:
                     info = nse_data["issueInfo"]
-                    # If NSE data has these fields, overwrite or inject them.
-                    # We only overwrite if we get a meaningful value, otherwise we rely on LLM.
+                    if "basic_info" not in profile_json:
+                        profile_json["basic_info"] = {}
+                    
                     if info.get("issueSize"):
-                        profile_json["issue_size"] = f"₹{info['issueSize']} Cr"
+                        profile_json["basic_info"]["issue_size"] = f"₹{info['issueSize']} Cr"
                     if info.get("priceBand"):
-                        profile_json["price_band"] = info["priceBand"]
+                        profile_json["basic_info"]["price_band"] = info["priceBand"]
                     if info.get("lotSize"):
-                        profile_json["lot_size"] = info["lotSize"]
+                        profile_json["basic_info"]["lot_size"] = info["lotSize"]
                     if info.get("faceValue"):
-                        profile_json["face_value"] = f"₹{info['faceValue']}"
+                        profile_json["basic_info"]["face_value"] = f"₹{info['faceValue']}"
             except Exception as e:
                 logging.warning(f"Failed to inject live NSE data for {symbol}: {e}")
 
