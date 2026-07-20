@@ -85,52 +85,52 @@ async function fetchIPOs() {
             const status = (ipo.status || 'current').toLowerCase();
             const tr = document.createElement('tr');
             tr.onclick = () => fetchIPODetails(ipo.ipo_name);
+            tr.style.cursor = "pointer";
 
-            // Mapping based on NSE table columns requested
+            const meta = ipo.nse_metadata || {};
+
             if (status === 'upcoming') {
                 tr.innerHTML = `
-                    <td style="font-weight:600">${ipo.ipo_name || '-'}</td>
-                    <td>${ipo.symbol || '-'}</td>
-                    <td>${ipo.security_type || '-'}</td>
-                    <td>${ipo.price || ipo.price_band || '-'}</td>
-                    <td>${ipo.issue_start_date || '-'}</td>
-                    <td>${ipo.issue_end_date || '-'}</td>
-                    <td><span class="badge" style="border-color:#fbbf24;color:#fbbf24">${ipo.status || 'Upcoming'}</span></td>
-                    <td>${ipo.issue_size || '-'}</td>
+                    <td style="font-weight:600">${meta['Company Name'] || ipo.ipo_name || '-'}</td>
+                    <td>${meta['Symbol'] || ipo.symbol || '-'}</td>
+                    <td>${meta['Security Type'] || '-'}</td>
+                    <td>${meta['Issue Price'] || '-'}</td>
+                    <td>${meta['ISSUE START DATE'] || '-'}</td>
+                    <td>${meta['ISSUE END DATE'] || '-'}</td>
+                    <td><span class="badge" style="border-color:#fbbf24;color:#fbbf24">${meta['STATUS'] || 'Upcoming'}</span></td>
+                    <td>${meta['ISSUE SIZE'] || '-'}</td>
                 `;
                 upcomingTbody.appendChild(tr);
             } else if (status === 'past') {
                 tr.innerHTML = `
-                    <td style="font-weight:600">${ipo.ipo_name || '-'}</td>
-                    <td>${ipo.symbol || '-'}</td>
-                    <td>${ipo.security_type || '-'}</td>
-                    <td>${ipo.price || '-'}</td>
-                    <td>${ipo.price_band || '-'}</td>
-                    <td>${ipo.issue_start_date || '-'}</td>
-                    <td>${ipo.issue_end_date || '-'}</td>
-                    <td>${ipo.listing_date || '-'}</td>
+                    <td style="font-weight:600">${meta['Company Name'] || ipo.ipo_name || '-'}</td>
+                    <td>${meta['Symbol'] || ipo.symbol || '-'}</td>
+                    <td>${meta['Security Type'] || '-'}</td>
+                    <td>${meta['Issue Price'] || '-'}</td>
+                    <td>${meta['Price Range'] || '-'}</td>
+                    <td>${meta['IPO START DATE'] || '-'}</td>
+                    <td>${meta['IPO END DATE'] || '-'}</td>
+                    <td>${meta['Listing Date'] || '-'}</td>
                 `;
                 pastTbody.appendChild(tr);
             } else {
-                // Current
-                let sharesFormatted = ipo.no_of_shares ? Number(ipo.no_of_shares).toLocaleString() : '-';
                 tr.innerHTML = `
-                    <td style="font-weight:600">${ipo.ipo_name || '-'}</td>
-                    <td>${ipo.symbol || '-'}</td>
-                    <td>${ipo.security_type || '-'}</td>
-                    <td>${ipo.price || ipo.price_band || '-'}</td>
-                    <td>${ipo.issue_start_date || '-'}</td>
-                    <td>${ipo.issue_end_date || '-'}</td>
-                    <td><span class="badge" style="border-color:#10b981;color:#10b981">${ipo.status || 'Current'}</span></td>
-                    <td>${sharesFormatted}</td>
+                    <td style="font-weight:600">${meta['Company Name'] || ipo.ipo_name || '-'}</td>
+                    <td>${meta['Symbol'] || ipo.symbol || '-'}</td>
+                    <td>${meta['Security type'] || '-'}</td>
+                    <td>${meta['issuePrice'] || '-'}</td>
+                    <td>${meta['Issue Start Date'] || '-'}</td>
+                    <td>${meta['Issue End Date'] || '-'}</td>
+                    <td><span class="badge" style="border-color:#10b981;color:#10b981">${meta['Status'] || 'Current'}</span></td>
+                    <td>${meta['No of Shares Offered'] || '-'}</td>
                 `;
                 currentTbody.appendChild(tr);
             }
         });
 
-        if (!currentTbody.hasChildNodes()) currentTbody.innerHTML = '<tr><td colspan="8" style="text-align:center">No Current IPOs</td></tr>';
-        if (!upcomingTbody.hasChildNodes()) upcomingTbody.innerHTML = '<tr><td colspan="8" style="text-align:center">No Upcoming IPOs</td></tr>';
-        if (!pastTbody.hasChildNodes()) pastTbody.innerHTML = '<tr><td colspan="8" style="text-align:center">No Past IPOs</td></tr>';
+        if (!currentTbody.hasChildNodes()) currentTbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-muted)">No Current IPOs</td></tr>';
+        if (!upcomingTbody.hasChildNodes()) upcomingTbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-muted)">No Upcoming IPOs</td></tr>';
+        if (!pastTbody.hasChildNodes()) pastTbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-muted)">No Past IPOs</td></tr>';
 
     } catch (err) {
         document.getElementById('loader').classList.add('hidden');

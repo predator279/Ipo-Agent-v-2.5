@@ -18,7 +18,7 @@ def get_ipos(req: func.HttpRequest) -> func.HttpResponse:
     try:
         sb = get_supabase()
         
-        registry_res = sb.table("ipo_cache_registry").select("ipo_name, symbol, status").execute()
+        registry_res = sb.table("ipo_cache_registry").select("ipo_name, symbol, status, nse_metadata").execute()
         profiles_res = sb.table("ipo_profiles").select("ipo_name, updated_at").execute()
         
         profiles_dict = {row["ipo_name"]: row.get("updated_at") for row in profiles_res.data}

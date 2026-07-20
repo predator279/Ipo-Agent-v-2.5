@@ -113,6 +113,7 @@ def register_ipo_cached(
     status: str,
     protected: bool = False,
     qdrant_collection: str = "",
+    nse_metadata: dict = None,
 ) -> None:
     """
     Registers an IPO in ipo_cache_registry after it has been cached in Qdrant.
@@ -122,12 +123,16 @@ def register_ipo_cached(
     if not sb:
         return
     try:
-        sb.table("ipo_cache_registry").upsert({
+        payload = {
             "ipo_name":          ipo_name,
             "symbol":            symbol,
             "status":            status,
             "protected":         protected,
             "qdrant_collection": qdrant_collection or ipo_name.replace(" ", "_"),
-        }).execute()
+        }
+        if nse_metadata is not None:
+            payload["nse_metadata"] = nse_metadata
+            
+        sb.table("ipo_cache_registry").upsert(payload).execute()
     except Exception as exc:
         print(f"[supabase_client] register_ipo_cached({ipo_name}) failed: {exc}")

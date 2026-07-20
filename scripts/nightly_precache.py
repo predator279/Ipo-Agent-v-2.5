@@ -91,7 +91,8 @@ def run_nightly():
                     
                     if db_status != nse_status:
                         print(f"[{ipo_name}] Status changed from {db_status} to {nse_status}. Updating registry.")
-                        register_ipo_cached(ipo_name, symbol, nse_status, protected=protected, qdrant_collection=q_col)
+                        nse_meta = row.fillna("").to_dict()
+                        register_ipo_cached(ipo_name, symbol, nse_status, protected=protected, qdrant_collection=q_col, nse_metadata=nse_meta)
                         
                     if nse_status in ["Current", "Upcoming"]:
                         print(f"[{ipo_name}] Refreshing sentiment analysis for active IPO...")
@@ -118,7 +119,8 @@ def run_nightly():
                 profile = _inject_metrics({}, row, nse_status)
                 profile["company_overview"] = "Historical IPO data. Detailed analysis skipped."
                 save_profile(ipo_name, symbol, profile)
-                register_ipo_cached(ipo_name, symbol, nse_status, protected=True)
+                nse_meta = row.fillna("").to_dict()
+                register_ipo_cached(ipo_name, symbol, nse_status, protected=True, nse_metadata=nse_meta)
                 continue
                 
             print(f"[{ipo_name}] Not found in cache. Starting full load processing...")
@@ -157,7 +159,8 @@ def run_nightly():
             if profile_dict:
                 profile_dict = _inject_metrics(profile_dict, row, nse_status)
                 save_profile(ipo_name, symbol, profile_dict)
-                register_ipo_cached(ipo_name, symbol, nse_status, protected=True)
+                nse_meta = row.fillna("").to_dict()
+                register_ipo_cached(ipo_name, symbol, nse_status, protected=True, nse_metadata=nse_meta)
                 print(f"[{ipo_name}] Processing and caching successful.")
             else:
                 print(f"[{ipo_name}] Extraction failed, did not save to Supabase.")
