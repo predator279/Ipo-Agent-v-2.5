@@ -7,312 +7,456 @@
     <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Chart.js for graphs -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Lottie Web Components -->
+    <script src="https://unpkg.com/@lottiefiles/dotlottie-wc@0.9.14/dist/dotlottie-wc.js" type="module"></script>
+    <!-- Preload Lottie Animation -->
+    <link rel="preload" href="https://lottie.host/20d63be6-cc2d-4a9f-bf4d-6debbe6baa5b/ltlUWxmkKG.lottie" as="fetch" crossorigin="anonymous">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="background-glow"></div>
-    
-    <header class="glass-header">
+    <header class="app-header">
         <div class="header-content">
-            <h1>Supreme <span>IPO Insights</span></h1>
-            <p>AI-driven analysis extracted directly from Red Herring Prospectuses.</p>
+            <div class="brand">
+                <i data-lucide="trending-up" style="color: var(--accent); width: 28px; height: 28px;"></i>
+                <div style="display: flex; flex-direction: column;">
+                    <h1>Supreme <span>IPO</span></h1>
+                </div>
+            </div>
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                <button id="theme-toggle" class="theme-toggle-btn" title="Toggle Dark/Light Mode">
+                    <i data-lucide="moon" id="theme-icon"></i>
+                </button>
+            </div>
         </div>
     </header>
     
     <main class="container">
         <!-- Loader -->
         <div id="loader" class="loader-container">
-            <div class="spinner"></div>
-            <p>Fetching latest IPO data...</p>
+            <dotlottie-wc src="https://lottie.host/20d63be6-cc2d-4a9f-bf4d-6debbe6baa5b/ltlUWxmkKG.lottie" style="width: 150px; height: 150px" autoplay loop></dotlottie-wc>
+            <p style="color: var(--text-main); margin-top: 1rem; font-weight: 600; font-size: 1.1rem;">Synthesizing IPO Data...</p>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0;">Crunching numbers and analyzing sentiment</p>
         </div>
 
         <!-- IPO List Section (Home) -->
         <section id="ipo-list-section" class="hidden">
-            <div class="section-header">
-                <h2>Live IPO Market</h2>
-                <div class="badge" id="sync-date">Data last synced: Loading...</div>
-            </div>
             
+            <!-- Hero Landing Section -->
+            <div class="hero-section" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4rem; margin-top: 2rem; flex-wrap: wrap; gap: 2rem;">
+                <div style="flex: 1; min-width: 300px; max-width: 600px;">
+                    <span style="font-size: 0.75rem; font-weight: 600; color: var(--text-muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 0.5rem; display: block;">Automated IPO Analysis & RAG Chatbot( Sou AI)</span>
+                    <h2 style="font-size: 3.5rem; font-weight: 800; line-height: 1.1; margin: 0 0 1.5rem 0; color: var(--text-main); letter-spacing: -1px;">Analyze IPOs with<br>AI precision</h2>
+                    <p style="font-size: 1.1rem; color: var(--text-muted); margin-bottom: 1.5rem; line-height: 1.5;">Save yourself from reading hundreds of pages of a RHP. Get instant insights from the official Red Herring Prospectus - financials, management, strengths, risks, and more. With market sentiment analysis from across the web. Dive deep with Sou AI uncover hidden insights across hundreds of pages</p>
+                </div>
+                <div style="flex: 0 0 350px; display: flex; justify-content: center; align-items: center;">
+                    <dotlottie-wc src="https://lottie.host/365eee0d-3f5b-4937-b9da-16503623418f/F5ILJrUkHh.lottie" style="width: 100%; height: 350px" autoplay loop></dotlottie-wc>
+                </div>
+            </div>
+
             <!-- Tab Navigation -->
             <div class="tabs-nav">
-                <button class="tab-btn active" data-tab="current-tab">🔥 Current</button>
-                <button class="tab-btn" data-tab="upcoming-tab">⏳ Upcoming</button>
-                <button class="tab-btn" data-tab="past-tab">✅ Past</button>
+                <button class="tab-btn active" data-tab="current-tab"><i data-lucide="flame" style="width: 16px; height: 16px; vertical-align: text-bottom; margin-right: 4px;"></i> Current</button>
+                <button class="tab-btn" data-tab="upcoming-tab"><i data-lucide="hourglass" style="width: 16px; height: 16px; vertical-align: text-bottom; margin-right: 4px;"></i> Upcoming</button>
+                <button class="tab-btn" data-tab="past-tab"><i data-lucide="check-circle-2" style="width: 16px; height: 16px; vertical-align: text-bottom; margin-right: 4px;"></i> Past</button>
             </div>
+
+            <p style="text-align: center; font-size: 0.95rem; font-weight: 600; color: var(--accent); margin: 1.5rem 0; display: flex; align-items: center; gap: 0.5rem;">
+                <i data-lucide="mouse-pointer-click" style="width: 16px; height: 16px;"></i> Click on any IPO below to see AI powered analysis & deep dive chat
+            </p>
 
             <!-- Tab Content: Current -->
             <div id="current-tab" class="tab-content active">
-                <div class="table-responsive glass-panel">
-                    <table class="ipo-table" id="current-table">
-                        <thead>
-                            <tr>
-                                <th>Company Name</th><th>Symbol</th><th>Security type</th><th>Issue Price</th>
-                                <th>Issue Start Date</th><th>Issue End Date</th><th>Status</th><th>No of Shares Offered</th>
-                            </tr>
-                        </thead>
-                        <tbody id="current-tbody"></tbody>
-                    </table>
+                <div class="card-panel" style="border: none; border-top: 1px solid var(--border); border-radius: 0; box-shadow: none; padding: 0;">
+                    <div class="table-responsive">
+                        <table class="ipo-table" id="current-table">
+                            <thead>
+                                <tr>
+                                    <th>Company Name</th><th>Symbol</th><th>Security type</th><th>Issue Price</th>
+                                    <th>Issue Start Date</th><th>Issue End Date</th><th>Status</th><th>No of Shares Offered</th>
+                                </tr>
+                            </thead>
+                            <tbody id="current-tbody"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
             <!-- Tab Content: Upcoming -->
             <div id="upcoming-tab" class="tab-content">
-                <div class="table-responsive glass-panel">
-                    <table class="ipo-table" id="upcoming-table">
-                        <thead>
-                            <tr>
-                                <th>Company Name</th><th>Symbol</th><th>Security Type</th><th>Issue Price</th>
-                                <th>ISSUE START DATE</th><th>ISSUE END DATE</th><th>STATUS</th><th>ISSUE SIZE</th>
-                            </tr>
-                        </thead>
-                        <tbody id="upcoming-tbody"></tbody>
-                    </table>
+                <div class="card-panel" style="border: none; border-top: 1px solid var(--border); border-radius: 0; box-shadow: none; padding: 0;">
+                    <div class="table-responsive">
+                        <table class="ipo-table" id="upcoming-table">
+                            <thead>
+                                <tr>
+                                    <th>Company Name</th><th>Symbol</th><th>Security Type</th><th>Issue Price</th>
+                                    <th>ISSUE START DATE</th><th>ISSUE END DATE</th><th>STATUS</th><th>ISSUE SIZE</th>
+                                </tr>
+                            </thead>
+                            <tbody id="upcoming-tbody"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
             <!-- Tab Content: Past -->
             <div id="past-tab" class="tab-content">
-                <div class="table-responsive glass-panel">
-                    <table class="ipo-table" id="past-table">
-                        <thead>
-                            <tr>
-                                <th>Company Name</th><th>Symbol</th><th>Security Type</th><th>Issue Price</th>
-                                <th>Price Range</th><th>IPO START DATE</th><th>IPO END DATE</th><th>Listing Date</th>
-                            </tr>
-                        </thead>
-                        <tbody id="past-tbody"></tbody>
-                    </table>
+                <div class="card-panel" style="border: none; border-top: 1px solid var(--border); border-radius: 0; box-shadow: none; padding: 0;">
+                    <div class="table-responsive">
+                        <table class="ipo-table" id="past-table">
+                            <thead>
+                                <tr>
+                                    <th>Company Name</th><th>Symbol</th><th>Security Type</th><th>Issue Price</th>
+                                    <th>Price Range</th><th>IPO START DATE</th><th>IPO END DATE</th><th>Listing Date</th>
+                                </tr>
+                            </thead>
+                            <tbody id="past-tbody"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </section>
 
         <!-- IPO Details Section (Dashboard) -->
         <section id="ipo-details-section" class="hidden">
-            <div class="dashboard-header-bar">
-                <button id="back-btn" class="glass-btn outline">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                        <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z"/>
-                    </svg>
-                    Back to Market
+            <div class="dashboard-top-header" style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2rem;">
+                <button id="back-btn" class="btn hover-effect" style="align-self: flex-start; padding: 0.5rem 1rem; font-size: 1rem; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); background: var(--bg-subcard); color: var(--text-main); display: flex; align-items: center; gap: 0.5rem;">
+                    <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i> Market
                 </button>
-                <button id="open-chat-btn" class="glass-btn primary">
-                    💬 Chatbot / Deepdive
-                </button>
-            </div>
-            
-            <div class="dashboard-layout">
-                <div class="dashboard-main full-width">
-                    <div class="details-card">
-                        <h2 id="ipo-title" style="margin-bottom: 5px;">IPO Title</h2>
-                        <div id="ipo-sector" style="margin-bottom: 20px; font-size: 0.9em; opacity: 0.8;"></div>
-                        
-                        <div class="section-divider">Basic IPO Information</div>
-                        <div class="metrics-grid">
-                            <div class="metric-card glass-subpanel"><span>Issue Size</span><h4 id="metric-issue-size">--</h4></div>
-                            <div class="metric-card glass-subpanel"><span>Price Band</span><h4 id="metric-price">--</h4></div>
-                            <div class="metric-card glass-subpanel"><span>Market Cap</span><h4 id="metric-market-cap">--</h4></div>
-                            <div class="metric-card glass-subpanel"><span>Lot Size</span><h4 id="metric-lot">--</h4><small>shares/lot</small></div>
-                            <div class="metric-card glass-subpanel"><span>Exchange</span><h4 id="metric-exchange">--</h4></div>
-                            <div class="metric-card glass-subpanel"><span>Fresh Issue</span><h4 id="metric-fresh-issue">--</h4></div>
-                            <div class="metric-card glass-subpanel"><span>OFS</span><h4 id="metric-ofs">--</h4><small>Offer for Sale</small></div>
-                            <div class="metric-card glass-subpanel"><span>Face Value</span><h4 id="metric-face-value">--</h4></div>
-                            <div class="metric-card glass-subpanel"><span>Promoter (Pre)</span><h4 id="metric-promoter-pre">--</h4><small>before IPO</small></div>
-                            <div class="metric-card glass-subpanel"><span>Promoter (Post)</span><h4 id="metric-promoter-post">--</h4><small>after IPO</small></div>
-                        </div>
-
-                        <div class="section-divider">Business Overview</div>
-                        <div class="business-section glass-subpanel">
-                            <div id="business-model-content"></div>
-                        </div>
-
-                        <div class="section-divider">Financial Performance (3-Year Trend)</div>
-                        <div class="charts-section glass-subpanel">
-                            <div class="chart-container">
-                                <canvas id="revenueChart"></canvas>
-                            </div>
-                            <div class="chart-container">
-                                <canvas id="marginChart"></canvas>
-                            </div>
-                        </div>
-                        <div class="financials-section glass-subpanel">
-                            <div class="table-responsive">
-                                <table id="financials-table" class="ipo-table">
-                                    <thead><tr id="financials-head"></tr></thead>
-                                    <tbody id="financials-body"></tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        <div id="key-metrics-section-container" class="hidden">
-                            <div class="section-divider">Key Metrics</div>
-                            <div class="key-metrics-columns glass-subpanel" style="display: flex; gap: 1.5rem; flex-wrap: wrap;">
-                                <div id="metrics-col-bs" class="metric-column hidden" style="flex: 1; min-width: 250px;">
-                                    <h4 style="margin-top:0">Balance Sheet (Latest Year)</h4>
-                                    <ul id="metrics-bs-list" style="padding-left: 1rem; margin: 0; color: var(--text-muted); font-size: 0.95rem;"></ul>
-                                </div>
-                                <div id="metrics-col-ratios" class="metric-column hidden" style="flex: 1; min-width: 250px;">
-                                    <div id="metrics-ratios-sub" class="hidden">
-                                        <h4 style="margin-top:0">Return Ratios</h4>
-                                        <ul id="metrics-ratios-list" style="padding-left: 1rem; margin: 0 0 1rem 0; color: var(--text-muted); font-size: 0.95rem;"></ul>
-                                    </div>
-                                    <div id="metrics-valuation-sub" class="hidden">
-                                        <h4 style="margin-top:0">Valuation Multiples</h4>
-                                        <ul id="metrics-valuation-list" style="padding-left: 1rem; margin: 0; color: var(--text-muted); font-size: 0.95rem;"></ul>
-                                    </div>
-                                </div>
-                                <div id="metrics-col-kpis" class="metric-column hidden" style="flex: 1; min-width: 250px;">
-                                    <h4 style="margin-top:0">Sector-Specific KPIs</h4>
-                                    <ul id="metrics-kpis-list" style="padding-left: 1rem; margin: 0; color: var(--text-muted); font-size: 0.95rem;"></ul>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div id="peer-comparison-section-container" class="hidden">
-                            <div class="section-divider">Peer Comparison</div>
-                            <div class="peer-comparison-section glass-subpanel">
-                                <div class="table-responsive">
-                                    <table id="peer-table" class="ipo-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Company</th>
-                                                <th>P/E</th>
-                                                <th>Revenue</th>
-                                                <th>PAT Margin %</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="peer-tbody"></tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div id="objects-issue-section-container" class="hidden">
-                            <div class="section-divider">Objects of the Issue</div>
-                            <div class="objects-issue-layout glass-subpanel" style="display: flex; gap: 2rem; flex-wrap: wrap; align-items: center;">
-                                <div class="objects-chart-col" style="flex: 1; min-width: 300px;">
-                                    <div id="objects-chart-container" class="chart-container" style="height: 250px;">
-                                        <canvas id="objectsChart"></canvas>
-                                    </div>
-                                    <div id="objects-no-chart" class="hidden" style="color:var(--text-muted); padding: 2rem 0; text-align: center;">Amount breakdown not specified.</div>
-                                </div>
-                                <div class="objects-categories-col" style="flex: 1; min-width: 250px;">
-                                    <h4 style="margin-top:0">Categories</h4>
-                                    <div id="objects-categories-list" style="display: flex; flex-wrap: wrap; gap: 0.5rem;"></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div id="management-section-container" class="hidden">
-                            <div class="section-divider">Management & Promoters</div>
-                            <div class="management-section glass-subpanel">
-                                <div class="management-columns" style="display: flex; gap: 2rem; flex-wrap: wrap;">
-                                    <div id="mgmt-key-col" class="hidden" style="flex: 1; min-width: 250px;">
-                                        <h4 style="margin-top:0">Key Management</h4>
-                                        <div id="mgmt-key-list" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
-                                    </div>
-                                    <div id="mgmt-promoters-col" class="hidden" style="flex: 1; min-width: 250px;">
-                                        <h4 style="margin-top:0">Promoters</h4>
-                                        <div id="mgmt-promoters-list" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
-                                    </div>
-                                </div>
-                                <div id="mgmt-litigations" class="hidden" style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border);">
-                                </div>
-                            </div>
-                        </div>
-
-                        <div id="risks-section-container" class="hidden">
-                            <div class="section-divider">Key Risks</div>
-                            <div id="risks-content" class="risks-section glass-subpanel" style="display: flex; flex-direction: column; gap: 1rem;">
-                            </div>
-                        </div>
-
-                        <div id="sentiment-section-container" class="hidden">
-                            <div class="section-divider">Market Sentiment Analysis</div>
-                            <div class="sentiment-section glass-subpanel">
-                                <div class="sentiment-top" style="display: flex; gap: 2rem; flex-wrap: wrap; margin-bottom: 2rem;">
-                                    <div class="sentiment-gauge-col" style="flex: 0 0 250px; text-align: center; position: relative;">
-                                        <div class="chart-container" style="height: 150px; min-width: unset; width: 100%;">
-                                            <canvas id="sentimentGauge"></canvas>
-                                        </div>
-                                        <div style="position: absolute; bottom: 0; width: 100%; text-align: center;">
-                                            <h3 id="sentiment-score-text" style="margin:0; font-size: 2rem;">--</h3>
-                                            <div id="sentiment-label" class="badge" style="margin-top:0.5rem; display: inline-block;">--</div>
-                                        </div>
-                                    </div>
-                                    <div class="sentiment-stats-col" style="flex: 1; min-width: 250px;">
-                                        <h4 style="margin-top:0">Overview</h4>
-                                        <div class="metrics-grid" style="grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));">
-                                            <div class="metric-card glass-subpanel" style="padding: 0.75rem; margin-bottom: 0;"><span>GMP</span><h4 id="sentiment-gmp">--</h4></div>
-                                            <div class="metric-card glass-subpanel" style="padding: 0.75rem; margin-bottom: 0;"><span>Total Sub</span><h4 id="sentiment-sub-total">--</h4></div>
-                                            <div class="metric-card glass-subpanel" style="padding: 0.75rem; margin-bottom: 0;"><span>QIB Sub</span><h4 id="sentiment-sub-qib">--</h4></div>
-                                            <div class="metric-card glass-subpanel" style="padding: 0.75rem; margin-bottom: 0;"><span>NII Sub</span><h4 id="sentiment-sub-nii">--</h4></div>
-                                            <div class="metric-card glass-subpanel" style="padding: 0.75rem; margin-bottom: 0;"><span>Retail Sub</span><h4 id="sentiment-sub-retail">--</h4></div>
-                                        </div>
-                                        <div style="margin-top: 1rem; font-size: 0.85rem; color: var(--text-muted);">
-                                            <strong>Sources:</strong> <span id="sentiment-sources">--</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="sentiment-pros-cons" style="display: flex; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 1.5rem;">
-                                    <div id="sentiment-positives-col" class="hidden" style="flex: 1; min-width: 250px;">
-                                        <h4 style="color: var(--sentiment-positive); margin-top:0;">Positives</h4>
-                                        <ul id="sentiment-positives-list" class="styled-list positive" style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.5rem;"></ul>
-                                    </div>
-                                    <div id="sentiment-negatives-col" class="hidden" style="flex: 1; min-width: 250px;">
-                                        <h4 style="color: var(--sentiment-negative); margin-top:0;">Concerns</h4>
-                                        <ul id="sentiment-negatives-list" class="styled-list negative" style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.5rem;"></ul>
-                                    </div>
-                                </div>
-
-                                <div id="sentiment-summary-col" class="hidden" style="margin-bottom: 1.5rem;">
-                                    <h4 style="margin-top:0">Analyst Summary</h4>
-                                    <ul id="sentiment-summary-list" style="padding-left: 1.2rem; margin: 0; color: var(--text-muted); font-size: 0.95rem;"></ul>
-                                </div>
-
-                                <div id="sentiment-articles-col" class="hidden">
-                                    <details>
-                                        <summary style="cursor: pointer; font-weight: 600; color: var(--accent);">Source Articles</summary>
-                                        <ul id="sentiment-articles-list" style="margin-top: 0.5rem; padding-left: 1.2rem; font-size: 0.9rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 0.4rem;"></ul>
-                                    </details>
-                                </div>
-                            </div>
+                
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%; flex-wrap: wrap; gap: 1rem;">
+                    <div class="dashboard-title-group">
+                        <h2 id="ipo-title" style="font-size: 2.2rem; font-weight: 800; letter-spacing: -0.5px;">IPO Title</h2>
+                        <div class="sector" style="font-size: 1rem;">
+                            <i data-lucide="briefcase" style="width: 16px; height: 16px;"></i>
+                            <span id="ipo-sector">Loading...</span>
                         </div>
                     </div>
+                    
+                    <div class="deepdive-btn-container" style="display: flex; flex-direction: column; align-items: flex-end;">
+                        <button id="open-chat-btn" class="btn primary hover-effect" style="font-size: 1rem; padding: 0.5rem 1.5rem; border-radius: 999px; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4); display: flex; align-items: center; justify-content: center; gap: 0.25rem;">
+                            <div style="width: 36px; height: 36px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; margin-left: -8px;">
+                                <dotlottie-wc src="https://lottie.host/e387e3d3-f579-4efe-ac58-635246a65792/NhKwb6f1LR.lottie" style="width: 100%; height: 100%;" autoplay loop></dotlottie-wc>
+                            </div>
+                            Deepdive with Sou AI
+                        </button>
+                        <span style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem; font-weight: 500;">Uncover hidden insights from official RHP document</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Dashboard Loader -->
+            <div id="dashboard-loader" class="loader-container hidden">
+                <dotlottie-wc src="https://lottie.host/20d63be6-cc2d-4a9f-bf4d-6debbe6baa5b/ltlUWxmkKG.lottie" style="width: 150px; height: 150px" autoplay loop></dotlottie-wc>
+                <p style="color: var(--text-main); margin-top: 1rem; font-weight: 600; font-size: 1.1rem;">Synthesizing IPO Data...</p>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0;">Crunching numbers and analyzing sentiment</p>
+            </div>
+            
+            <div id="dashboard-content" class="dashboard-body-layout">
+                
+                <!-- Desktop Left Rail Nav (Hidden by default) -->
+                <aside id="dashboard-left-rail" class="left-rail-nav">
+                    <button class="rail-btn active" data-tab="dash-overview">Overview & Sentiment</button>
+                    <button class="rail-btn" data-tab="dash-financials">Financials & Metrics</button>
+                    <button class="rail-btn" data-tab="dash-about">About & Management</button>
+                    <button class="rail-btn" data-tab="dash-strengths-risks">Strengths & Risks</button>
+                </aside>
+                
+                <div class="dashboard-main-area">
+                    <!-- Dashboard Inner Tabs -->
+                    <div class="tabs-nav" id="dashboard-tabs">
+                        <button class="tab-btn active" data-tab="dash-overview">Overview & Sentiment</button>
+                        <button class="tab-btn" data-tab="dash-financials">Financials & Metrics</button>
+                        <button class="tab-btn" data-tab="dash-about">About & Management</button>
+                        <button class="tab-btn" data-tab="dash-strengths-risks">Strengths & Risks</button>
+                    </div>
+
+            <!-- Tab 1: Overview & Sentiment -->
+            <div id="dash-overview" class="tab-content active">
+                <div class="section-heading">
+                    <i data-lucide="file-text" style="width: 18px; height: 18px;"></i>
+                    IPO Details
+                </div>
+                <!-- Clean Stacked Layout for Details as requested -->
+                <div class="overview-grid" style="grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 1rem;">
+                    <div class="overview-item hover-effect"><span>Issue Size</span><h4 id="metric-issue-size">--</h4></div>
+                    <div class="overview-item hover-effect"><span>Price Band</span><h4 id="metric-price">--</h4></div>
+                    <div class="overview-item hover-effect"><span>Market Cap</span><h4 id="metric-market-cap">--</h4></div>
+                    <div class="overview-item hover-effect"><span>Lot Size</span><h4 id="metric-lot">--</h4><small>shares/lot</small></div>
+                    <div class="overview-item hover-effect"><span>Exchange</span><h4 id="metric-exchange">--</h4></div>
+                    <div class="overview-item hover-effect"><span>Fresh Issue</span><h4 id="metric-fresh-issue">--</h4></div>
+                    <div class="overview-item hover-effect"><span>OFS</span><h4 id="metric-ofs">--</h4><small>Offer for Sale</small></div>
+                    <div class="overview-item hover-effect"><span>Face Value</span><h4 id="metric-face-value">--</h4></div>
+                </div>
+
+                <div id="sentiment-section-container" class="hidden">
+                    <div class="section-heading" style="margin-top: 2rem;">
+                        <i data-lucide="activity" style="width: 18px; height: 18px;"></i>
+                        Market Sentiment Analysis
+                    </div>
+                    
+                    <div class="card-panel" style="padding: 2rem;">
+                        <!-- Top Row: Gauge & Subs (Centered vertically) -->
+                        <div style="display: flex; gap: 2rem; flex-wrap: wrap; margin-bottom: 2rem; align-items: center;">
+                            <div style="flex: 0 0 250px; display: flex; flex-direction: column; align-items: center;">
+                                <div class="chart-container" style="height: 150px; width: 250px; min-width: unset; position: relative;">
+                                    <canvas id="sentimentGauge"></canvas>
+                                    <div style="position: absolute; bottom: 10px; width: 100%; text-align: center;">
+                                        <h3 id="sentiment-score-text" style="margin:0; font-size: 2.2rem; font-weight: 800;">--</h3>
+                                        <div id="sentiment-label" class="badge" style="margin-top:0.2rem; display: inline-block; background: transparent; padding: 0.1rem 0.5rem; font-size: 0.85rem;">--</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div style="flex: 1; min-width: 300px;">
+                                <h4 style="margin-top: 0; color: var(--text-main); font-size: 1.1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">Overview</h4>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                                    <div class="card-subpanel hover-effect" style="text-align: center; padding: 1rem; border-color: var(--accent); background: rgba(16,185,129,0.05);">
+                                        <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">GMP</span>
+                                        <h4 id="sentiment-gmp" style="margin: 0.5rem 0 0 0; font-size: 1.4rem; color: var(--accent);">--</h4>
+                                    </div>
+                                    <div class="card-subpanel hover-effect" style="text-align: center; padding: 1rem;">
+                                        <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Total Sub</span>
+                                        <h4 id="sentiment-sub-total" style="margin: 0.5rem 0 0 0; font-size: 1.25rem; color: var(--text-main);">--</h4>
+                                    </div>
+                                    <div class="card-subpanel hover-effect" style="text-align: center; padding: 1rem;">
+                                        <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">QIB Sub</span>
+                                        <h4 id="sentiment-sub-qib" style="margin: 0.5rem 0 0 0; font-size: 1.25rem; color: var(--text-main);">--</h4>
+                                    </div>
+                                    <div class="card-subpanel hover-effect" style="text-align: center; padding: 1rem;">
+                                        <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">NII Sub</span>
+                                        <h4 id="sentiment-sub-nii" style="margin: 0.5rem 0 0 0; font-size: 1.25rem; color: var(--text-main);">--</h4>
+                                    </div>
+                                    <div class="card-subpanel hover-effect" style="text-align: center; padding: 1rem;">
+                                        <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Retail Sub</span>
+                                        <h4 id="sentiment-sub-retail" style="margin: 0.5rem 0 0 0; font-size: 1.25rem; color: var(--text-main);">--</h4>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Middle Row: Positives & Concerns -->
+                        <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 2rem;">
+                            <div style="flex: 1; min-width: 300px;">
+                                <h4 style="color: var(--sentiment-positive); margin-top: 0; font-size: 1.1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">Positives</h4>
+                                <ul id="sentiment-positives-grid" class="clean-list positive" style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem;"></ul>
+                            </div>
+                            <div style="flex: 1; min-width: 300px;">
+                                <h4 style="color: var(--sentiment-negative); margin-top: 0; font-size: 1.1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">Concerns</h4>
+                                <ul id="sentiment-negatives-grid" class="clean-list negative" style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem;"></ul>
+                            </div>
+                        </div>
+
+                        <!-- Bottom Row: Summary & Sources -->
+                        <div id="sentiment-analyst-summary-container" class="hidden" style="margin-bottom: 1.5rem; padding: 1.25rem; background: var(--bg-subcard); border-radius: 8px;">
+                            <h4 style="margin-top: 0; font-size: 1rem; color: var(--text-main); display:flex; align-items:center; gap:0.5rem;"><i data-lucide="lightbulb" style="width:16px;height:16px;color:var(--accent);"></i> Analyst Summary</h4>
+                            <ul id="sentiment-analyst-summary" style="padding-left: 1.2rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 0;"></ul>
+                        </div>
+
+                        <div id="sentiment-sources-container" class="hidden">
+                            <details style="background: transparent; padding: 0.5rem 0; border-top: 1px dashed var(--border);">
+                                <summary class="hover-effect-text" style="cursor: pointer; font-weight: 500; color: var(--accent); display: flex; align-items: center; gap: 0.5rem;">
+                                    <i data-lucide="link" style="width: 16px; height: 16px;"></i> View Source Articles
+                                </summary>
+                                <ul id="sentiment-articles-list" style="margin-top: 1rem; margin-bottom: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 0.75rem;"></ul>
+                            </details>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 2: Financials & Metrics -->
+            <div id="dash-financials" class="tab-content">
+                
+                <div id="key-metrics-section-container" class="hidden">
+                    <div class="section-heading">
+                        <i data-lucide="bar-chart-2" style="width: 18px; height: 18px;"></i>
+                        Key Metrics
+                    </div>
+                    <div class="card-panel" style="display: flex; gap: 1.5rem; flex-wrap: wrap;">
+                        <div id="metrics-col-bs" class="metric-column hidden" style="flex: 1; min-width: 200px;">
+                            <h4 style="margin-top:0; font-size: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">Balance Sheet</h4>
+                            <ul id="metrics-bs-list" style="padding-left: 0; list-style: none; margin: 0.75rem 0 0 0; color: var(--text-muted); line-height: 1.8;"></ul>
+                        </div>
+                        <div id="metrics-col-ratios" class="metric-column hidden" style="flex: 1; min-width: 200px;">
+                            <div id="metrics-ratios-sub" class="hidden">
+                                <h4 style="margin-top:0; font-size: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">Return Ratios</h4>
+                                <ul id="metrics-ratios-list" style="padding-left: 0; list-style: none; margin: 0.75rem 0 1rem 0; color: var(--text-muted); line-height: 1.8;"></ul>
+                            </div>
+                            <div id="metrics-valuation-sub" class="hidden">
+                                <h4 style="margin-top:0; font-size: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">Valuation Multiples</h4>
+                                <ul id="metrics-valuation-list" style="padding-left: 0; list-style: none; margin: 0.75rem 0 0 0; color: var(--text-muted); line-height: 1.8;"></ul>
+                            </div>
+                        </div>
+                        <div id="metrics-col-kpis" class="metric-column hidden" style="flex: 1; min-width: 200px;">
+                            <h4 style="margin-top:0; font-size: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">Sector KPIs</h4>
+                            <ul id="metrics-kpis-list" style="padding-left: 0; list-style: none; margin: 0.75rem 0 0 0; color: var(--text-muted); line-height: 1.8;"></ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-heading">
+                    <i data-lucide="trending-up" style="width: 18px; height: 18px;"></i>
+                    Financial Performance
+                </div>
+                <div class="card-panel">
+                    <div class="charts-section">
+                        <div class="chart-container"><canvas id="revenueChart"></canvas></div>
+                        <div class="chart-container"><canvas id="marginChart"></canvas></div>
+                    </div>
+                    <div class="table-responsive">
+                        <table id="financials-table" class="ipo-table">
+                            <thead><tr id="financials-head"></tr></thead>
+                            <tbody id="financials-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="peer-comparison-section-container" class="hidden">
+                    <div class="section-heading">
+                        <i data-lucide="users" style="width: 18px; height: 18px;"></i>
+                        Peer Comparison
+                    </div>
+                    <div class="card-panel table-responsive">
+                        <table id="peer-table" class="ipo-table">
+                            <thead>
+                                <tr><th>Company</th><th>P/E</th><th>Revenue</th><th>PAT Margin %</th></tr>
+                            </thead>
+                            <tbody id="peer-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 3: About & Management -->
+            <div id="dash-about" class="tab-content">
+                <div class="section-heading">
+                    <i data-lucide="info" style="width: 18px; height: 18px;"></i>
+                    Business Overview
+                </div>
+                <div class="card-panel" style="background: transparent; border: none; padding: 0; box-shadow: none;">
+                    <div id="business-model-content"></div>
+                </div>
+
+                <div id="objects-issue-section-container" class="hidden">
+                    <div class="section-heading">
+                        <i data-lucide="target" style="width: 18px; height: 18px;"></i>
+                        Objects of the Issue
+                    </div>
+                    <div class="card-panel" style="display: flex; gap: 2rem; flex-wrap: wrap; align-items: center;">
+                        <div class="objects-chart-col" style="flex: 1; min-width: 250px;">
+                            <div id="objects-chart-container" class="chart-container" style="height: 250px;">
+                                <canvas id="objectsChart"></canvas>
+                            </div>
+                            <div id="objects-no-chart" class="hidden" style="color:var(--text-muted); padding: 2rem 0; text-align: center;">Amount breakdown not specified.</div>
+                        </div>
+                        <div class="objects-categories-col" style="flex: 1; min-width: 250px;">
+                            <h4 style="margin-top:0; font-size: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">Categories</h4>
+                            <div id="objects-categories-list" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="management-section-container" class="hidden">
+                    <div class="section-heading">
+                        <i data-lucide="users-2" style="width: 18px; height: 18px;"></i>
+                        Management & Promoters
+                    </div>
+                    <div class="card-panel">
+                        <div style="display: flex; gap: 2rem; flex-wrap: wrap;">
+                            <div id="mgmt-key-col" class="hidden" style="flex: 1; min-width: 250px;">
+                                <h4 style="margin-top:0; font-size: 1rem; color: var(--text-muted); border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">Key Management</h4>
+                                <div id="mgmt-key-list" style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem;"></div>
+                            </div>
+                            <div id="mgmt-promoters-col" class="hidden" style="flex: 1; min-width: 250px;">
+                                <h4 style="margin-top:0; font-size: 1rem; color: var(--text-muted); border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">Promoters</h4>
+                                <div id="mgmt-promoters-list" style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem;"></div>
+                            </div>
+                        </div>
+                        <div id="mgmt-litigations" class="hidden" style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border);"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 4: Strengths & Risks -->
+            <div id="dash-strengths-risks" class="tab-content">
+                <div class="section-heading">
+                    <i data-lucide="shield-alert" style="width: 18px; height: 18px;"></i>
+                    Strengths & Risks Breakdown
+                </div>
+                
+                <div class="pill-toggle-container">
+                    <button class="pill-btn active strength" id="toggle-strengths-btn">
+                        <i data-lucide="thumbs-up" style="width: 16px; height: 16px;"></i> Strengths
+                    </button>
+                    <button class="pill-btn risk" id="toggle-risks-btn">
+                        <i data-lucide="thumbs-down" style="width: 16px; height: 16px;"></i> Risks
+                    </button>
+                </div>
+
+                <div id="strengths-content" class="toggle-content active">
+                    <div id="strengths-grouped-content" style="display: flex; flex-direction: column; gap: 1rem;">
+                        <span style="color:var(--text-muted)">Loading strengths...</span>
+                    </div>
+                </div>
+
+                <div id="risks-content" class="toggle-content">
+                    <div id="risks-grouped-content" style="display: flex; flex-direction: column; gap: 1rem;">
+                        <span style="color:var(--text-muted)">Loading risks...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Disclaimer Footer -->
+            <div style="margin-top: 4rem; padding: 2rem; border-top: 1px dashed var(--border); text-align: center; color: var(--text-muted); line-height: 1.6;">
+                <i data-lucide="alert-circle" style="width: 24px; height: 24px; color: var(--text-muted); margin-bottom: 1rem;"></i><br>
+                <strong style="color: var(--text-main);">AI powered analysis.</strong> This report is mechanically generated from official RHP documents for informational purposes only. <br>We are not SEBI-registered advisors. Always read the official Red Herring Prospectus and consult a financial advisor before investing.
+            </div>
+
                 </div>
             </div>
         </section>
     </main>
     
     <!-- Chatbot Side Panel -->
-    <div id="chat-sidepanel" class="sidepanel hidden glass-panel">
+    <div id="chat-sidepanel" class="sidepanel hidden">
+        <div class="chat-resizer" id="chat-resizer"></div>
         <div class="chat-header">
-            <h3>AI Assistant</h3>
+            <h3><i data-lucide="bot" style="color: var(--accent);"></i> Sou AI Assistant</h3>
             <div class="chat-controls">
-                <button id="expand-chat-btn" class="icon-btn" title="Expand/Collapse">⤢</button>
-                <button id="close-chat-btn" class="icon-btn" title="Close">×</button>
+                <button id="close-chat-btn" class="icon-btn" title="Close" style="display: flex; align-items: center; gap: 0.5rem;">
+                    <i data-lucide="x" class="desktop-icon" style="width: 18px; height: 18px;"></i>
+                    <i data-lucide="arrow-left" class="mobile-icon hidden" style="width: 18px; height: 18px;"></i>
+                    <span class="mobile-icon hidden" style="font-size: 0.9rem;">Back</span>
+                </button>
             </div>
         </div>
         <div class="chat-history" id="chat-history">
             <div class="chat-message assistant">
-                <p>Hello! I can answer questions about this IPO. You can ask me to summarize financials or list top risks.</p>
+                <p>Hello! I am Sou AI, your IPO intelligence agent. I've read the full RHP. What would you like to know?</p>
             </div>
         </div>
         
         <div class="chat-quick-queries">
-            <button class="quick-query-btn" data-query="Summarise financials">Summarise financials</button>
-            <button class="quick-query-btn" data-query="Top 5 risks">Top 5 risks</button>
+            <button class="quick-query-btn hover-effect" data-query="Should I invest in this?">Should I invest?</button>
+            <button class="quick-query-btn hover-effect" data-query="Is the valuation justified?">Is valuation justified?</button>
+            <button class="quick-query-btn hover-effect" data-query="What are the biggest red flags?">What are the red flags?</button>
+            <button class="quick-query-btn hover-effect" data-query="Who are the promoters and what is their background?">Promoter background</button>
+            <button class="quick-query-btn hover-effect" data-query="What is the objective of this issue?">Objective of issue</button>
         </div>
         
         <div class="chat-input-area">
-            <input type="text" id="chat-input" placeholder="Ask something..." autocomplete="off" />
-            <button id="chat-send-btn" class="glass-btn primary" style="margin-bottom: 0;">Send</button>
+            <input type="text" id="chat-input" placeholder="Ask Sou AI..." autocomplete="off" />
+            <button id="chat-send-btn" class="btn primary" style="margin-bottom: 0;">
+                <i data-lucide="send" style="width: 16px; height: 16px;"></i>
+            </button>
         </div>
     </div>
     
-    <script src="script.js"></script>
+    <script src="script.js?v=2"></script>
 </body>
 </html>
