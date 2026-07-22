@@ -273,19 +273,19 @@ def format_sentiment_data(sentiment_data: dict) -> dict:
             return None
             
     # Handle subscription object
-    sub_raw = sentiment_data.get("subscription_estimate", "")
+    sub_raw = sentiment_data.get("subscription_estimate", {})
     sub_dict = {"total": None, "qib": None, "nii": None, "retail": None}
-    if isinstance(sub_raw, str):
-        # Try to extract numbers from string like "1.21x (Total), 0.29x (QIB)"
-        m_tot = re.search(r'([\d.]+)\s*x?\s*\(total\)', sub_raw, re.I)
-        m_qib = re.search(r'([\d.]+)\s*x?\s*\(qib\)', sub_raw, re.I)
-        m_nii = re.search(r'([\d.]+)\s*x?\s*\(nii\)', sub_raw, re.I)
-        m_ret = re.search(r'([\d.]+)\s*x?\s*\(retail\)', sub_raw, re.I)
-        if m_tot: sub_dict["total"] = f"{m_tot.group(1)}x"
-        if m_qib: sub_dict["qib"] = f"{m_qib.group(1)}x"
-        if m_nii: sub_dict["nii"] = f"{m_nii.group(1)}x"
-        if m_ret: sub_dict["retail"] = f"{m_ret.group(1)}x"
-        
+    
+    if isinstance(sub_raw, dict):
+        sub_dict.update({
+            "total": sub_raw.get("total"),
+            "qib": sub_raw.get("qib"),
+            "nii": sub_raw.get("nii"),
+            "retail": sub_raw.get("retail")
+        })
+    elif isinstance(sub_raw, str) and sub_raw:
+        # Fallback for old string format
+        sub_dict["total"] = sub_raw
     sentiment_json = {
         "gmp": _parse_num(gmp_val),
         "score": _parse_num(score_val),
@@ -293,7 +293,7 @@ def format_sentiment_data(sentiment_data: dict) -> dict:
         "summary": sentiment_data.get("summary", []),
         "positives": sentiment_data.get("positives", []),
         "negatives": sentiment_data.get("negatives", []),
-        "subscription": sub_dict,
+        "subscription_estimate": sub_dict,
         "articles": sentiment_data.get("articles", []),
         "sources_used": sentiment_data.get("sources_used", [])
     }

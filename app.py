@@ -548,8 +548,13 @@ with tab_analysis:
                 st.metric("Overall Sentiment", label)
                 if sentiment.get("gmp"):
                     st.metric("Grey Market Premium", sentiment["gmp"])
-                if sentiment.get("subscription_estimate"):
-                    st.markdown(f"**Subscription:** {sentiment['subscription_estimate']}")
+                sub = sentiment.get("subscription_estimate")
+                if isinstance(sub, dict):
+                    sub_parts = [f"{k.upper()}: {v}" for k, v in sub.items() if v and str(v).strip().lower() not in ("null", "none", "")]
+                    if sub_parts:
+                        st.markdown(f"**Subscription:** {', '.join(sub_parts)}")
+                elif sub and str(sub).strip().lower() not in ("null", "none", ""):
+                    st.markdown(f"**Subscription:** {sub}")
                 sources = sentiment.get("sources_used", [])
                 if sources:
                     st.markdown("**Data from:** " + " · ".join(sources))

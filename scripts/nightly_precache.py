@@ -54,6 +54,12 @@ def run_nightly():
         print("ERROR: Supabase not configured. Cannot run nightly cache.")
         sys.exit(1)
         
+    # Bulk load registry to avoid 500+ individual DB lookups
+    print("Pre-loading IPO cache registry...")
+    res = sb.table("ipo_cache_registry").select("ipo_name").execute()
+    cached_ipo_names = {r["ipo_name"] for r in res.data} if res.data else set()
+
+        
     ipo_dict = fetch_all_ipo_data_separated()
     if not ipo_dict:
         print("No data fetched from NSE. Exiting.")
@@ -70,6 +76,11 @@ def run_nightly():
             ipo_name = row.get("_UI_Company_Name") or row.get("Company Name", "Unknown")
             symbol = row.get("_UI_Symbol") or row.get("Symbol", "")
             
+            # Fast local check for Past IPOs before hitting DB
+            if nse_status == "Past" and ipo_name not in cached_ipo_names:
+                # We don't even need to query Supabase
+                continue
+
             try:
                 res = sb.table("ipo_cache_registry").select("*").eq("ipo_name", ipo_name).execute()
                 if res.data:
@@ -120,12 +131,6 @@ def run_nightly():
                 continue
                 
             if nse_status == "Past":
-                print(f"[{ipo_name}] Missing Past IPO. Creating lightweight metadata record only.")
-                profile = _inject_metrics({}, row, nse_status)
-                profile["company_overview"] = "Historical IPO data. Detailed analysis skipped."
-                save_profile(ipo_name, symbol, profile)
-                nse_meta = row.fillna("").to_dict()
-                register_ipo_cached(ipo_name, symbol, nse_status, protected=True, nse_metadata=nse_meta)
                 continue
                 
             print(f"[{ipo_name}] Not found in cache. Starting full load processing...")

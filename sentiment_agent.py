@@ -325,7 +325,12 @@ JSON Schema:
   "score": <float 0.0-5.0>,
   "sentiment_label": "<Very Negative|Negative|Neutral|Positive|Very Positive>",
   "gmp": "<GMP value if found in text, else null>",
-  "subscription_estimate": "<QIB/HNI/Retail subscription estimates if mentioned, else null>",
+  "subscription_estimate": {
+    "total": "<overall subscription times (e.g. 147x) or null>",
+    "qib": "<QIB times or null>",
+    "nii": "<NII times or null>",
+    "retail": "<Retail times or null>"
+  },
   "summary": ["<key point 1>", "<key point 2>", "<3-5 total bullets>"],
   "positives": ["<bull case point>", "..."],
   "negatives": ["<concern>", "..."]
@@ -340,7 +345,15 @@ Scoring guide:
 
     user_prompt = f"Analyze sentiment for '{ipo_name}' IPO:\n\n{all_text[:4000]}"
 
-    response = invoke_model(llm, [("system", system_prompt), ("user", user_prompt)])
+    try:
+        response = invoke_model(llm, [("system", system_prompt), ("user", user_prompt)])
+    except Exception as e:
+        print(f"⚠️ Primary LLM failed ({e}). Falling back to Mistral...")
+        import time
+        from agents.tools import get_llm
+        time.sleep(1.5)  # Respect Mistral's 1 request per second limit
+        fallback_llm = get_llm(model_name="mistral-small-latest") # Force Mistral
+        response = invoke_model(fallback_llm, [("system", system_prompt), ("user", user_prompt)])
 
     # Parse JSON robustly
     try:
