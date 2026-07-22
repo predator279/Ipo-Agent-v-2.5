@@ -13,14 +13,23 @@ document.addEventListener('DOMContentLoaded', () => {
     initTheme();
     fetchIPOs();
 
-    // Fix hero lottie squish/blur: force aspect-preserving fit + full-res rendering
-    customElements.whenDefined('dotlottie-wc').then(() => {
-        const heroLottie = document.getElementById('hero-lottie');
-        if (heroLottie) {
+    // Fix hero lottie squish/blur: force aspect-preserving fit + full-res rendering.
+    // These must be set AFTER the specific instance has loaded (not just after the
+    // custom element class is registered), or a fast/cached load will apply them
+    // too early and they'll silently be dropped.
+    const heroLottie = document.getElementById('hero-lottie');
+    if (heroLottie) {
+        const applyHeroLottieFixes = () => {
             heroLottie.layout = { fit: 'contain', align: [0.5, 0.5] };
             heroLottie.renderConfig = { devicePixelRatio: window.devicePixelRatio || 1, autoResize: true };
+        };
+        if (heroLottie.dotLottie) {
+            // Already loaded (e.g. very fast/cached load beat this script)
+            applyHeroLottieFixes();
+        } else {
+            heroLottie.addEventListener('load', applyHeroLottieFixes, { once: true });
         }
-    });
+    }
 
     // Theme Toggle Logic
     document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
