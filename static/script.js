@@ -13,6 +13,15 @@ document.addEventListener('DOMContentLoaded', () => {
     initTheme();
     fetchIPOs();
 
+    // Fix hero lottie squish/blur: force aspect-preserving fit + full-res rendering
+    customElements.whenDefined('dotlottie-wc').then(() => {
+        const heroLottie = document.getElementById('hero-lottie');
+        if (heroLottie) {
+            heroLottie.layout = { fit: 'contain', align: [0.5, 0.5] };
+            heroLottie.renderConfig = { devicePixelRatio: window.devicePixelRatio || 1, autoResize: true };
+        }
+    });
+
     // Theme Toggle Logic
     document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
 
