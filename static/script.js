@@ -1,5 +1,5 @@
 // Azure Function App URL (Backend API)
-const API_BASE_URL = 'https://supreme-ipo-api-123.azurewebsites.net/api';
+const API_BASE_URL = 'https://corsproxy.io/?' + encodeURIComponent('https://supreme-ipo-api-123.azurewebsites.net/api');
 
 let currentIpoName = null;
 let currentChatHistory = [];
