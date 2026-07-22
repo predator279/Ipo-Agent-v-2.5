@@ -670,7 +670,7 @@ async function fetchIPODetails(ipoName) {
             });
 
             document.getElementById('sentiment-gmp').innerText = sent.gmp !== null && sent.gmp !== undefined ? sent.gmp : '--';
-            const sub = sent.subscription || {};
+            const sub = sent.subscription.estimate || {};
             document.getElementById('sentiment-sub-total').innerHTML = sub.total !== null && sub.total !== undefined ? `<strong style="color:var(--text-main)">${sub.total}</strong>` : '--';
             document.getElementById('sentiment-sub-qib').innerHTML = sub.qib !== null && sub.qib !== undefined ? `<strong style="color:var(--text-main)">${sub.qib}</strong>` : '--';
             document.getElementById('sentiment-sub-nii').innerHTML = sub.nii !== null && sub.nii !== undefined ? `<strong style="color:var(--text-main)">${sub.nii}</strong>` : '--';
