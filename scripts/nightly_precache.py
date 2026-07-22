@@ -59,14 +59,11 @@ def run_nightly():
         print("No data fetched from NSE. Exiting.")
         return
 
-    # TEST MODE: Process ONLY 1 IPO from each category
+    # Process ALL IPOs from NSE
     for nse_status in ["Upcoming", "Current", "Past"]:
         df = ipo_dict.get(nse_status)
         if df is None or df.empty:
             continue
-            
-        # Limit to 1 IPO for testing
-        df = df.head(1)
             
         print(f"--- Processing {nse_status} IPOs ---")
         for _, row in df.iterrows():
@@ -177,21 +174,25 @@ def run_nightly():
             # Rate limit the LLM calls slightly to be safe
             time.sleep(2)
             
-    print("Running LRU eviction check...")
-    evict_old_ipos(sb, limit=30)
+    print("Running eviction check for Past IPOs...")
+    evict_old_ipos(sb, limit=10)
     print("Nightly Pre-cacher completed successfully.")
 
-def evict_old_ipos(sb, limit=30):
+def evict_old_ipos(sb, limit=10):
     try:
         res = sb.table("ipo_cache_registry").select("*").execute()
-        if not res.data or len(res.data) <= limit:
+        if not res.data:
             return
             
-        print(f"Cache size ({len(res.data)}) exceeds limit ({limit}). Evicting old Past IPOs...")
         past_ipos = [r for r in res.data if r.get("status") == "Past" and not r.get("protected")]
-        past_ipos.sort(key=lambda x: x.get("last_accessed") or x.get("updated_at") or "")
+        if len(past_ipos) <= limit:
+            return
+            
+        print(f"Past IPO count ({len(past_ipos)}) exceeds limit ({limit}). Evicting oldest ones...")
+        # Sort by updated_at ascending (oldest first)
+        past_ipos.sort(key=lambda x: x.get("updated_at") or "")
         
-        num_to_delete = len(res.data) - limit
+        num_to_delete = len(past_ipos) - limit
         to_delete = past_ipos[:num_to_delete]
         
         if not to_delete:
