@@ -127,7 +127,7 @@
                 <button id="back-btn" class="btn hover-effect" style="align-self: flex-start; padding: 0.5rem 1rem; font-size: 1rem; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); background: var(--bg-subcard); color: var(--text-main); display: flex; align-items: center; gap: 0.5rem;">
                     <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i> Market
                 </button>
-
+                
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%; flex-wrap: wrap; gap: 1rem;">
                     <div class="dashboard-title-group">
                         <h2 id="ipo-title" style="font-size: 2.2rem; font-weight: 800; letter-spacing: -0.5px;">IPO Title</h2>
@@ -136,7 +136,7 @@
                             <span id="ipo-sector">Loading...</span>
                         </div>
                     </div>
-
+                    
                     <div class="deepdive-btn-container" style="display: flex; flex-direction: column; align-items: flex-end;">
                         <button id="open-chat-btn" class="btn primary hover-effect" style="font-size: 1rem; padding: 0.5rem 1.5rem; border-radius: 999px; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4); display: flex; align-items: center; justify-content: center; gap: 0.25rem;">
                             <div style="width: 36px; height: 36px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; margin-left: -8px;">
@@ -148,16 +148,16 @@
                     </div>
                 </div>
             </div>
-
+            
             <!-- Dashboard Loader -->
             <div id="dashboard-loader" class="loader-container hidden">
                 <dotlottie-wc src="https://lottie.host/20d63be6-cc2d-4a9f-bf4d-6debbe6baa5b/ltlUWxmkKG.lottie" style="width: 150px; height: 150px" autoplay loop></dotlottie-wc>
                 <p style="color: var(--text-main); margin-top: 1rem; font-weight: 600; font-size: 1.1rem;">Synthesizing IPO Data...</p>
                 <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0;">Crunching numbers and analyzing sentiment</p>
             </div>
-
+            
             <div id="dashboard-content" class="dashboard-body-layout">
-
+                
                 <!-- Desktop Left Rail Nav (Hidden by default) -->
                 <aside id="dashboard-left-rail" class="left-rail-nav">
                     <button class="rail-btn active" data-tab="dash-overview">Overview & Sentiment</button>
@@ -165,7 +165,7 @@
                     <button class="rail-btn" data-tab="dash-about">About & Management</button>
                     <button class="rail-btn" data-tab="dash-strengths-risks">Strengths & Risks</button>
                 </aside>
-
+                
                 <div class="dashboard-main-area">
                     <!-- Dashboard Inner Tabs -->
                     <div class="tabs-nav" id="dashboard-tabs">
@@ -198,7 +198,7 @@
                         <i data-lucide="activity" style="width: 18px; height: 18px;"></i>
                         Market Sentiment Analysis
                     </div>
-
+                    
                     <div class="card-panel" style="padding: 2rem;">
                         <!-- Top Row: Gauge & Subs (Centered vertically) -->
                         <div style="display: flex; gap: 2rem; flex-wrap: wrap; margin-bottom: 2rem; align-items: center;">
@@ -211,7 +211,7 @@
                                     </div>
                                 </div>
                             </div>
-
+                            
                             <div style="flex: 1; min-width: 300px;">
                                 <h4 style="margin-top: 0; color: var(--text-main); font-size: 1.1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">Overview</h4>
                                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 1rem; margin-top: 1rem;">
@@ -271,7 +271,7 @@
 
             <!-- Tab 2: Financials & Metrics -->
             <div id="dash-financials" class="tab-content">
-
+                
                 <div id="key-metrics-section-container" class="hidden">
                     <div class="section-heading">
                         <i data-lucide="bar-chart-2" style="width: 18px; height: 18px;"></i>
@@ -388,7 +388,7 @@
                     <i data-lucide="shield-alert" style="width: 18px; height: 18px;"></i>
                     Strengths & Risks Breakdown
                 </div>
-
+                
                 <div class="pill-toggle-container">
                     <button class="pill-btn active strength" id="toggle-strengths-btn">
                         <i data-lucide="thumbs-up" style="width: 16px; height: 16px;"></i> Strengths
@@ -421,7 +421,7 @@
             </div>
         </section>
     </main>
-
+    
     <!-- Chatbot Side Panel -->
     <div id="chat-sidepanel" class="sidepanel hidden">
         <div class="chat-resizer" id="chat-resizer"></div>
@@ -440,7 +440,7 @@
                 <p>Hello! I am Sou AI, your IPO intelligence agent. I've read the full RHP. What would you like to know?</p>
             </div>
         </div>
-
+        
         <div class="chat-quick-queries">
             <button class="quick-query-btn hover-effect" data-query="Should I invest in this?">Should I invest?</button>
             <button class="quick-query-btn hover-effect" data-query="Is the valuation justified?">Is valuation justified?</button>
@@ -448,7 +448,7 @@
             <button class="quick-query-btn hover-effect" data-query="Who are the promoters and what is their background?">Promoter background</button>
             <button class="quick-query-btn hover-effect" data-query="What is the objective of this issue?">Objective of issue</button>
         </div>
-
+        
         <div class="chat-input-area">
             <input type="text" id="chat-input" placeholder="Ask Sou AI..." autocomplete="off" />
             <button id="chat-send-btn" class="btn primary" style="margin-bottom: 0;">
@@ -456,7 +456,7 @@
             </button>
         </div>
     </div>
-
+    
     <script src="script.js?v=2"></script>
 </body>
 </html>
