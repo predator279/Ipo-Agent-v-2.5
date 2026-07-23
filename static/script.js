@@ -912,7 +912,15 @@ async function sendChatMessage(message) {
         
         clearInterval(textInterval);
         
-        if (!response.ok) throw new Error("Chat failed");
+        if (!response.ok) {
+            let errorMsg = "Chat failed";
+            try {
+                const errData = await response.json();
+                errorMsg = errData.error || errorMsg;
+            } catch (e) {}
+            throw new Error(errorMsg);
+        }
+        
         const data = await response.json();
         const answer = data.answer || "Sorry, I couldn't understand that.";
 
@@ -928,10 +936,82 @@ async function sendChatMessage(message) {
     } catch (err) {
         clearInterval(textInterval);
         if(chatHistoryEl.contains(loadingDiv)) chatHistoryEl.removeChild(loadingDiv);
+        
+        let errorMsg = err.message || "An unexpected error occurred.";
+        let errType = "API_ERROR";
+        const msgLower = errorMsg.toLowerCase();
+        
+        if (msgLower.includes("429") || msgLower.includes("resource_exhausted") || msgLower.includes("rate_limit") || msgLower.includes("rate limit")) {
+            errType = (msgLower.includes("daily") || msgLower.includes("per day") || msgLower.includes("rpd")) ? "RATE_LIMIT_DAILY" : "RATE_LIMIT_RPM";
+        } else if (msgLower.includes("401") || msgLower.includes("auth") || msgLower.includes("invalid api key") || msgLower.includes("api key not valid")) {
+            errType = "AUTH_ERROR";
+        } else if (msgLower.includes("404") || msgLower.includes("not_found") || msgLower.includes("model not found") || msgLower.includes("no longer available")) {
+            errType = "MODEL_NOT_FOUND";
+        } else if (msgLower.includes("timeout") || msgLower.includes("deadline")) {
+            errType = "TIMEOUT";
+        }
+
+        let formattedError = "";
+        if (errType === "RATE_LIMIT_RPM") {
+            formattedError = `<div style="display:flex; align-items:flex-start; gap:8px;">
+                <i data-lucide="alert-triangle" style="width: 20px; height: 20px; color: #eab308; flex-shrink: 0; margin-top: 3px;"></i>
+                <div>
+                    <strong style="color:var(--text-main);">Rate Limit Exceeded (Resource Exhausted)</strong><br/>
+                    We use free APIs (Gemini, Mistral, Groq) with rate limits. Please try again after some time (usually 15-30 seconds).
+                </div>
+            </div>`;
+        } else if (errType === "RATE_LIMIT_DAILY") {
+            formattedError = `<div style="display:flex; align-items:flex-start; gap:8px;">
+                <i data-lucide="alert-triangle" style="width: 20px; height: 20px; color: #eab308; flex-shrink: 0; margin-top: 3px;"></i>
+                <div>
+                    <strong style="color:var(--text-main);">Daily Quota Exhausted</strong><br/>
+                    Our free APIs (Gemini, Mistral, Groq) have hit their daily request limit. Please try again tomorrow.
+                </div>
+            </div>`;
+        } else if (errType === "AUTH_ERROR") {
+            formattedError = `<div style="display:flex; align-items:flex-start; gap:8px;">
+                <i data-lucide="shield-alert" style="width: 20px; height: 20px; color: var(--sentiment-negative); flex-shrink: 0; margin-top: 3px;"></i>
+                <div>
+                    <strong style="color:var(--text-main);">Authentication Failed</strong><br/>
+                    There is an issue with the API keys for the LLMs (Gemini, Mistral, Groq). They might be invalid, expired, or missing.
+                </div>
+            </div>`;
+        } else if (errType === "MODEL_NOT_FOUND") {
+            formattedError = `<div style="display:flex; align-items:flex-start; gap:8px;">
+                <i data-lucide="search-x" style="width: 20px; height: 20px; color: var(--sentiment-negative); flex-shrink: 0; margin-top: 3px;"></i>
+                <div>
+                    <strong style="color:var(--text-main);">Model Not Found</strong><br/>
+                    One of the LLM models (Gemini, Mistral, or Groq) requested is not available. It might have been deprecated by the provider.
+                </div>
+            </div>`;
+        } else if (errType === "TIMEOUT") {
+            formattedError = `<div style="display:flex; align-items:flex-start; gap:8px;">
+                <i data-lucide="timer" style="width: 20px; height: 20px; color: #eab308; flex-shrink: 0; margin-top: 3px;"></i>
+                <div>
+                    <strong style="color:var(--text-main);">Request Timeout</strong><br/>
+                    The LLM API (Gemini, Mistral, or Groq) took too long to respond. Please try asking a shorter question or try again.
+                </div>
+            </div>`;
+        } else {
+            formattedError = `<div style="display:flex; align-items:flex-start; gap:8px;">
+                <i data-lucide="alert-circle" style="width: 20px; height: 20px; color: var(--sentiment-negative); flex-shrink: 0; margin-top: 3px;"></i>
+                <div>
+                    <strong style="color:var(--text-main);">LLM Invocation Failed</strong><br/>
+                    An unexpected error occurred with the AI provider.<br/><br/>
+                    <small style="opacity:0.8;">Error details: ${errorMsg}</small>
+                </div>
+            </div>`;
+        }
+        
         const errorDiv = document.createElement('div');
         errorDiv.className = 'chat-message assistant';
-        errorDiv.innerHTML = `<p style="color:var(--sentiment-negative);">Error: ${err.message}</p>`;
+        errorDiv.innerHTML = formattedError;
         chatHistoryEl.appendChild(errorDiv);
         chatHistoryEl.scrollTop = chatHistoryEl.scrollHeight;
+        
+        // Render lucide icons
+        if (typeof lucide !== 'undefined' && lucide.createIcons) {
+            lucide.createIcons({ root: errorDiv });
+        }
     }
 }

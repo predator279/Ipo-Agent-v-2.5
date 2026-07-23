@@ -133,9 +133,13 @@
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%; flex-wrap: wrap; gap: 1rem;">
                     <div class="dashboard-title-group">
                         <h2 id="ipo-title" style="font-size: 2.2rem; font-weight: 800; letter-spacing: -0.5px;">IPO Title</h2>
-                        <div class="sector" style="font-size: 1rem;">
+                        <div class="sector" style="font-size: 1rem; margin-bottom: 0.5rem;">
                             <i data-lucide="briefcase" style="width: 16px; height: 16px;"></i>
                             <span id="ipo-sector">Loading...</span>
+                        </div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: flex-start; gap: 6px; max-width: 500px; line-height: 1.4;">
+                            <i data-lucide="info" style="width: 14px; height: 14px; flex-shrink: 0; margin-top: 1px;"></i>
+                            <span>The LLM News analysis is non-deterministic and uses sources across the internet. It might interpret info wrongly; please recheck verified sources.</span>
                         </div>
                     </div>
                     
@@ -239,6 +243,11 @@
                                     </div>
                                 </div>
                             </div>
+                        </div>
+
+                        <div style="font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: flex-start; gap: 6px; margin-top: -0.5rem; margin-bottom: 1.5rem; line-height: 1.4;">
+                            <i data-lucide="info" style="width: 14px; height: 14px; flex-shrink: 0; margin-top: 1px;"></i>
+                            <span><strong>Note on Sentiment & Analysis:</strong> This data is extracted via AI from recent news articles. Some IPOs genuinely have no data in the recent news articles that the AI retrieved for them, which may result in blank fields.</span>
                         </div>
 
                         <!-- Middle Row: Positives & Concerns -->

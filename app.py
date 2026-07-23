@@ -648,26 +648,34 @@ with tab_chat:
                         err_type = classify_llm_error(exc)
                         if err_type == "RATE_LIMIT_RPM":
                             response = (
-                                "⚠️ **Rate Limit Exceeded (RPM)**\n\n"
-                                "The free-tier LLM is temporarily rate-limited. Please wait 15–30 seconds before sending your next message."
+                                ":material/warning: **Rate Limit Exceeded (Resource Exhausted)**\n\n"
+                                "We use free APIs (Gemini, Mistral, Groq) with rate limits. Please try again after some time (usually 15-30 seconds)."
                             )
                         elif err_type == "RATE_LIMIT_DAILY":
                             response = (
-                                "⚠️ **Daily Quota Exhausted (RPD)**\n\n"
-                                "The LLM has hit its daily request limit. Please update your API keys in `secrets.toml` or try again tomorrow."
+                                ":material/warning: **Daily Quota Exhausted**\n\n"
+                                "Our free APIs (Gemini, Mistral, Groq) have hit their daily request limit. Please try again tomorrow, or configure your own API keys in `secrets.toml`."
                             )
                         elif err_type == "AUTH_ERROR":
                             response = (
-                                "⚠️ **Authentication Failed**\n\n"
-                                "The API key configured in `secrets.toml` is invalid or expired. Please verify your keys."
+                                ":material/error: **Authentication Failed**\n\n"
+                                "There is an issue with the API keys for the LLMs (Gemini, Mistral, Groq). They might be invalid, expired, or missing. Please verify them in `secrets.toml`."
+                            )
+                        elif err_type == "MODEL_NOT_FOUND":
+                            response = (
+                                ":material/search_off: **Model Not Found**\n\n"
+                                "One of the LLM models (Gemini, Mistral, or Groq) requested is not available. It might have been deprecated by the provider."
                             )
                         elif err_type == "TIMEOUT":
                             response = (
-                                "⏳ **Request Timeout**\n\n"
-                                "The request took too long to complete. Please try asking a shorter question or try again."
+                                ":material/timer: **Request Timeout**\n\n"
+                                "The LLM API (Gemini, Mistral, or Groq) took too long to respond. Please try asking a shorter question or try again."
                             )
                         else:
-                            response = f"❌ **LLM Invocation Failed**\n\n*{str(exc)}*"
+                            response = (
+                                f":material/error: **LLM Invocation Failed**\n\n"
+                                f"An unexpected error occurred with the AI provider.\n\n*Error details: {str(exc)}*"
+                            )
 
                 st.session_state.messages.append({"role": "assistant", "content": response})
                 with st.chat_message("assistant"):
