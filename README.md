@@ -1,220 +1,184 @@
 <p align="center">
+  <img src="https://img.shields.io/badge/Azure%20Functions-0062AD?style=for-the-badge&logo=microsoft-azure&logoColor=white" />
+  <img src="https://img.shields.io/badge/GitHub%20Actions-2088FF?style=for-the-badge&logo=github-actions&logoColor=white" />
   <img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white" />
-  <img src="https://img.shields.io/badge/Streamlit-1.30+-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white" />
   <img src="https://img.shields.io/badge/LangChain-🦜-1C3C3C?style=for-the-badge" />
-  <img src="https://img.shields.io/badge/Groq-LLaMA_3.3_70B-F55036?style=for-the-badge" />
-  <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Qdrant-Cloud-EB2A4E?style=for-the-badge&logo=qdrant&logoColor=white" />
+  <img src="https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white" />
 </p>
 
 <h1 align="center">📈 IPO Analysis Agent</h1>
 
 <p align="center">
-  <strong>AI-powered Indian IPO research platform — from RHP download to investment-grade analysis in one click.</strong>
+  <strong>An end-to-end, production-grade Retrieval-Augmented Generation (RAG) platform designed to automate the analysis of Indian IPOs (Initial Public Offerings).</strong>
 </p>
 
 <p align="center">
-  <em>Live NSE data • Automated RHP/DRHP extraction • Multi-source sentiment • Deep-dive RAG chatbot</em>
+  <a href="https://ipo.supreme.codes"><strong>Try the Live Website: ipo.supreme.codes</strong></a>
 </p>
-
----
-
-## 🎬 Demo
-
-https://github.com/user-attachments/assets/0bf86099-331b-4f11-b2d5-f36b7cc8c502
 
 ---
 
 ## 🚀 What is IPO Analysis Agent?
 
-**IPO Analysis Agent** is an end-to-end, AI-powered platform that automates the entire IPO research workflow for Indian markets. Instead of manually reading 500+ page Red Herring Prospectuses and scouring news sites, this tool does it all in under a minute:
+**IPO Analysis Agent** is an end-to-end, AI-powered platform that automates the entire IPO research workflow for Indian markets. Instead of manually reading 500+ page Red Herring Prospectuses (RHPs) and scouring news sites, this tool does it all:
 
-1. **Fetches live IPO data** from NSE (Current, Upcoming & Past IPOs)
-2. **Downloads & parses** the official RHP/DRHP documents from SEBI & ipopremium.in
-3. **Extracts 40+ structured parameters** (financials, valuation, risks, management, etc.) using parallel RAG queries
-4. **Runs multi-source sentiment analysis** aggregating Tavily, Reddit, and Google News
-5. **Provides a conversational chatbot** to ask any question about the prospectus
+1. **Fetches live IPO data** from NSE (Current, Upcoming & Past IPOs).
+2. **Downloads & parses** the official RHP/DRHP documents directly from the **National Stock Exchange (NSE)** (with SEBI as a reliable fallback).
+3. **Extracts 40+ structured parameters** (financials, valuation, risks, management, etc.) using parallel RAG queries.
+4. **Runs multi-source sentiment analysis** aggregating Tavily, Reddit, and Google News.
+5. **Provides SOU AI** — a conversational chatbot to ask any question about the prospectus. *(Etymology: "Sou" means an old coin in French, perfectly capturing my vision of a money-focused, highly efficient, and low-cost AI RAG system).*
+
+I built this project to demonstrate a complete lifecycle of a complex AI application: from automated data ingestion and vector embeddings to a production-ready cloud deployment powered by **Microsoft Azure Functions** and orchestrated via **GitHub Actions**.
+
+---
+
+## 🎬 Demo
+
+**Live Deployment**: [https://ipo.supreme.codes](https://ipo.supreme.codes)
+
+*(Demo video placeholder - https://github.com/user-attachments/assets/0bf86099-331b-4f11-b2d5-f36b7cc8c502)*
 
 ---
 
 ## ✨ Features
 
 ### 🏦 Live IPO Market Dashboard
-- Real-time data from **NSE India APIs**
-- Separate views for **Current**, **Upcoming**, and **Past** IPOs
-- Subscription status, price bands, and listing details
+- Real-time data from **NSE India**.
+- Separate views for **Current**, **Upcoming**, and **Past** IPOs.
+- Subscription status, price bands, and listing details.
 
 ### 📊 Comprehensive Analysis Dashboard
-| Section | What's Extracted |
-|---------|-----------------|
-| **Basic Info** | Issue size, price band, market cap, lot size, face value, exchange |
-| **Business Overview** | Business model, revenue streams, competitive moat, TAM/SAM, geographic presence |
-| **Financials (3-Year)** | Revenue, EBITDA, PAT, margins, EPS, cash flow — with interactive Plotly charts |
-| **Balance Sheet** | Total assets/liabilities, net worth, D/E ratio, current ratio, working capital |
-| **Return Ratios** | ROE, ROCE, ROA |
-| **Valuation** | P/E, P/B, EV/EBITDA + peer comparison table |
-| **Objects of Issue** | Fund utilization breakdown with donut chart |
-| **Management** | Key management personnel, promoters, litigations |
-| **Risk Factors** | Top 8-10 risk factors extracted and summarised |
-| **Sector KPIs** | Auto-detected sector-specific metrics (Tech → ARR/MRR, BFSI → NPA/CASA, etc.) |
+- **Basic Info**: Issue size, price band, market cap, lot size, face value.
+- **Financials (3-Year)**: Revenue, EBITDA, PAT, margins, EPS — with interactive Plotly charts.
+- **Return Ratios & Valuation**: ROE, ROCE, ROA, P/E, P/B, EV/EBITDA + peer comparison table.
+- **Risk Factors & Management**: Top 8-10 risk factors summarized, key personnel, and litigations.
 
-### 📡 Multi-Source Sentiment Analysis
-- **Tavily Search API** — high-quality financial news with full content
-- **Reddit** — retail investor discussions from r/IndiaInvestments, r/IndianStockMarket
-- **Google News RSS** — mainstream media headlines
-- **Grey Market Premium (GMP)** — auto-extracted from sources
-- Sentiment gauge (0-5 scale) with positives/negatives breakdown
-
-### 💬 Deep-Dive RAG Chatbot
-- **Hybrid retrieval**: BM25 (keyword) + ChromaDB (semantic) with Ensemble Retriever
-- **MMR diversity** to avoid redundant chunks
-- **Table-aware**: reads markdown tables and extracts exact numbers
-- **History-aware**: maintains conversational context across questions
-- Quick-question buttons for common queries
+### 💬 Deep-Dive RAG Chatbot: SOU AI
+- **Hybrid Retrieval**: BM25 (keyword) + ChromaDB/Qdrant (semantic) search.
+- **Table-Aware Parsing**: Accurately reads markdown tables from PDFs and extracts exact numbers.
+- **History-Aware**: Maintains conversational context across follow-up questions.
 
 ---
 
-## 🏗️ Architecture
+## 🏗️ Architecture (Azure & GitHub Powered)
 
+This is a fully scalable, cloud-native architecture deployed on **Microsoft Azure** with CI/CD handled by **GitHub Actions**:
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│                   Static Frontend (HTML/JS)                 │
+│                 Hosted on Live Web Server                   │
+└──────┬───────────────────────────────────────────────┬──────┘
+       │ HTTP GET /ipos                                │ HTTP POST /chat
+       ▼                                               ▼
+┌─────────────────────────────────────────────────────────────┐
+│                Azure Function App (Backend)                 │
+│  (Deployed automatically via GitHub Actions: deploy-backend)│
+│                                                             │
+│  ┌──────────────────┐               ┌────────────────────┐  │
+│  │ Profile Fetcher  │               │ SOU AI Engine      │  │
+│  └────────┬─────────┘               └─────────┬──────────┘  │
+└───────────┼───────────────────────────────────┼─────────────┘
+            │                                   │
+            ▼                                   ▼
+┌───────────────────────┐            ┌────────────────────────┐
+│      Supabase         │            │      Qdrant Cloud      │
+│ (PostgreSQL Cache)    │            │     (Vector Store)     │
+│ Cached IPO Profiles   │            │ RHP Document Embeddings│
+└───────────────────────┘            └────────────────────────┘
+            ▲                                   ▲
+            │                                   │
+┌───────────┴───────────────────────────────────┴─────────────┐
+│                 Nightly Precache Script                     │
+│ (ipo_fetcher.py -> rhp_agent.py -> ipo_extractor.py)        │
+└─────────────────────────────────────────────────────────────┘
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    Streamlit UI (app.py)                 │
-│  ┌──────────┐  ┌──────────────────┐  ┌───────────────┐  │
-│  │ Live IPO │  │ Analysis         │  │ Chat (RAG)    │  │
-│  │ Market   │  │ Dashboard        │  │ Deep-Dive     │  │
-│  └────┬─────┘  └────────┬─────────┘  └───────┬───────┘  │
-│       │                 │                     │          │
-├───────┼─────────────────┼─────────────────────┼──────────┤
-│       ▼                 ▼                     ▼          │
-│  ipo_fetcher.py   ipo_extractor.py     chatbot_agent.py  │
-│  (NSE API)        (Parallel RAG        (Hybrid BM25 +    │
-│                    Extraction)          Semantic RAG)     │
-│                         │                     │          │
-│                         ▼                     ▼          │
-│               sentiment_agent.py       document_processor│
-│               (Tavily + Reddit +       (pdfplumber +     │
-│                Google News)             PyMuPDF)         │
-│                                               │          │
-│                                               ▼          │
-│                                        rhp_agent.py      │
-│                                        (SEBI + ipopremium│
-│                                         PDF downloader)  │
-│                                               │          │
-│                                               ▼          │
-│                                        ChromaDB          │
-│                                        (Vector Store)    │
-└─────────────────────────────────────────────────────────┘
-```
+
+---
+
+## 🔧 How It Works (and Engineering Tradeoffs)
+
+1. **Document Acquisition**: The system identifies new IPOs and downloads their RHPs primarily from the **NSE**, utilizing **SEBI** as a fallback.
+2. **Parsing & Chunking**: Heavy 500+ page PDFs are parsed using `pdfplumber` (for complex tables) and `PyMuPDF` (for fast text).
+3. **Parallel RAG Extraction**: 11 parallel RAG queries target specific data categories (financials, risks) to build a structured JSON profile.
+4. **Caching & Vector Storage**: The JSON profile is stored in **Supabase** for instant retrieval, and the text chunks are embedded and stored in **Qdrant Cloud** for SOU AI.
+
+> **💡 Engineering Tradeoff: Data Quality vs. CI/CD Automation**  
+> Initially, the data ingestion pipeline was meant to run entirely via automated **GitHub Actions**. However, the official National Stock Exchange (NSE) endpoints utilize a Strict Web Application Firewall (WAF) that actively blocks known datacenter IPs (like GitHub Actions runners). 
+> 
+> *The Decision*: I chose **Data Quality & Reliability** over full automation. Rather than scraping unreliable third-party aggregators to bypass the firewall, I utilize a manually triggered nightly precache script from a clean residential IP. This ensures I get the most accurate, official data directly from the source, pushing updates to Supabase and Qdrant for the Azure frontend to seamlessly consume.
 
 ---
 
 ## 📁 Project Structure
 
-```
+```text
 IPO-Analysis-Agent/
-├── app.py                  # Main Streamlit application (v3 — full dashboard)
-├── chatbot_agent.py        # Hybrid RAG chain (BM25 + semantic + MMR)
-├── ipo_extractor.py        # Parallel structured data extraction (40+ fields)
-├── ipo_fetcher.py          # Live NSE India API integration
-├── sentiment_agent.py      # Multi-source sentiment (Tavily, Reddit, Google News)
-├── rhp_agent.py            # RHP/DRHP downloader (SEBI + ipopremium.in)
-├── document_processor.py   # PDF parser (pdfplumber + PyMuPDF, table-aware)
-├── master_agent.py         # LangChain tool-calling agent orchestrator
-├── agents/
-│   ├── __init__.py
-│   └── tools.py            # Shared LLM factory (Groq / OpenRouter / HuggingFace)
-├── .streamlit/
-│   └── secrets.toml        # API keys (not committed)
-├── ipo_vectorstores/       # Cached ChromaDB vector stores (auto-generated)
-├── ipo_analysis_cache/     # Cached extraction results (auto-generated)
-├── SEBI_RHPs/              # Downloaded SEBI documents (auto-generated)
+├── api/                    # Azure Function App Backend (Production API)
+│   ├── function_app.py     # HTTP triggers and RAG chatbot endpoint
+│   └── requirements.txt    
+├── static/                 # Production Static Frontend (HTML/JS/CSS)
+├── .github/workflows/      # CI/CD (deploy-backend, deploy-frontend)
+├── ipo_extractor.py        # Parallel structured data extraction
+├── ipo_fetcher.py          # NSE API integration
+├── document_processor.py   # PDF parser (pdfplumber + PyMuPDF)
+├── chatbot_agent.py        # LangChain setup (SOU AI)
+├── rhp_agent.py            # RHP downloader (NSE & SEBI)
+├── app.py                  # Local Streamlit UI (for local prototyping & debugging)
 └── README.md
 ```
 
 ---
 
-## ⚡ Quick Start
+## ⚡ Quick Start (Local Run)
+
+You can run this entire architecture on your local machine! To protect the live infrastructure and avoid hitting rate limits, the repository requires you to configure your own free-tier databases and API keys.
 
 ### Prerequisites
+- Python 3.10+
+- A free **Groq**, **Gemini**, or **Mistral** API Key
+- A free **Supabase** Project (PostgreSQL)
+- A free **Qdrant Cloud** Cluster
 
-- **Python 3.10+**
-- **Groq API Key** (free at [console.groq.com](https://console.groq.com)) — *required*
-- **Tavily API Key** (free 1000/mo at [app.tavily.com](https://app.tavily.com)) — *optional, improves sentiment*
-
-### 1. Clone the Repository
-
+### 1. Clone & Install
 ```bash
 git clone https://github.com/your-username/ipo-analysis-agent.git
 cd ipo-analysis-agent
-```
-
-### 2. Create Virtual Environment
-
-```bash
 python -m venv .venv
-
-# Windows
-.venv\Scripts\activate
-
-# macOS / Linux
-source .venv/bin/activate
+source .venv/bin/activate  # (Windows: .venv\Scripts\activate)
+pip install -r requirements.txt
 ```
 
-### 3. Install Dependencies
+### 2. Configure Your Environment
+Create a `.env` file (copy from `.env.example`) and add your own credentials:
+```ini
+GROQ_API_KEY="your_groq_key"
+GEMINI_API_KEY="your_gemini_key"
+MISTRAL_API_KEY="your_mistral_key"
+SUPABASE_URL="your_supabase_url"
+SUPABASE_KEY="your_supabase_key"
+QDRANT_URL="your_qdrant_url"
+QDRANT_API_KEY="your_qdrant_key"
+```
 
+### 3. Run the Precache Script
+To fetch data from the NSE and load it into your own Supabase and Qdrant databases:
 ```bash
-pip install streamlit langchain langchain-groq langchain-chroma langchain-huggingface langchain-community
-pip install chromadb sentence-transformers plotly pandas
-pip install pdfplumber PyMuPDF praw feedparser beautifulsoup4 rapidfuzz requests
+# Extract data, download RHPs, and push embeddings
+python ipo_extractor.py
 ```
 
-### 4. Configure API Keys
-
-Create `.streamlit/secrets.toml`:
-
-```toml
-GROQ_API_KEY = "gsk_your_key_here"
-TAVILY_API_KEY = "tvly-your_key_here"       # Optional
+### 4. Start the Application
+You can run the full backend locally using Azure Functions Core Tools:
+```bash
+cd api
+func start
 ```
-
-Or enter them directly in the app sidebar.
-
-### 5. Run the App
-
+Alternatively, for a quick UI test without Azure, run the local Streamlit dashboard:
 ```bash
 streamlit run app.py
 ```
-
-The app will open at `http://localhost:8501` 🎉
-
----
-
-## 🔧 How It Works
-
-### Step 1: Document Acquisition
-The **RHP Agent** (`rhp_agent.py`) searches for the company's prospectus across:
-- **ipopremium.in** — fuzzy name matching + CDN download
-- **SEBI** — official filings scraper with robust retry/resume logic
-
-Downloads are streamed with **resume support** (HTTP Range requests) for large 25+ MB PDFs.
-
-### Step 2: Smart Document Processing
-The **Document Processor** (`document_processor.py`) uses a dual-engine approach:
-- **pdfplumber** — extracts tables as clean markdown
-- **PyMuPDF** — fast text extraction for narrative content
-- Boilerplate pages (TOC, disclaimers) are auto-skipped
-- Important sections (financials, risks) are flagged for retrieval boosting
-
-### Step 3: Parallel Structured Extraction
-The **IPO Extractor** (`ipo_extractor.py`) fires **11 parallel RAG queries** against the vectorstore, each targeting a specific data category (basic info, financials, risks, etc.). Results are merged into a structured `IPOProfile` dataclass with 40+ fields.
-
-### Step 4: Multi-Source Sentiment
-The **Sentiment Agent** (`sentiment_agent.py`) aggregates market buzz from 3 sources, then runs LLM analysis to produce a structured sentiment score (0-5), GMP estimates, and bull/bear case points.
-
-### Step 5: Interactive Analysis
-Everything is rendered in a **dark-themed Streamlit dashboard** with:
-- Interactive **Plotly charts** (Revenue/PAT bars, Margin trends, Objects of Issue donut)
-- Sentiment **gauge visualisation**
-- **Conversational RAG chatbot** for deep-dive questions
 
 ---
 
@@ -222,37 +186,34 @@ Everything is rendered in a **dark-themed Streamlit dashboard** with:
 
 | Layer | Technology |
 |-------|-----------|
-| **Frontend** | Streamlit, Plotly |
-| **LLM** | Groq (LLaMA 3.3 70B Versatile) |
-| **Embeddings** | HuggingFace `all-MiniLM-L6-v2` |
-| **Vector DB** | ChromaDB |
-| **Retrieval** | LangChain (Hybrid BM25 + Semantic + MMR) |
-| **PDF Parsing** | pdfplumber + PyMuPDF |
-| **Sentiment Data** | Tavily API, Reddit (PRAW), Google News RSS |
-| **Document Source** | SEBI, ipopremium.in |
-| **Market Data** | NSE India APIs |
+| **Cloud Hosting** | Microsoft Azure Function Apps |
+| **Automation** | GitHub Actions |
+| **Frontend** | HTML/JS/CSS (Production) + Streamlit (Local) |
+| **LLM Inference** | Groq (LLaMA 3.3 70B), Google Gemini, Mistral |
+| **Vector DB** | Qdrant Cloud |
+| **SQL Database** | Supabase (PostgreSQL) |
+| **Orchestration** | LangChain |
 
 ---
 
 ## 📋 Supported LLM Providers
 
-| Provider | Model | How to Use |
+| Provider | Model | Usage |
 |----------|-------|-----------|
-| **Groq** *(recommended)* | LLaMA 3.3 70B | Set `GROQ_API_KEY` |
-| **HuggingFace** | Mistral 7B Instruct | Set `HUGGINGFACEHUB_API_TOKEN` |
-| **OpenRouter** | Any model | Set `OPENROUTER_API_KEY` |
+| **Groq** *(Fastest)* | LLaMA 3.3 70B | Great for parallel extraction and sentiment. |
+| **Gemini** | Gemini 2.0 Flash | Excellent context window for heavy RAG chat (SOU AI). |
+| **Mistral** | Mistral 7B | Reliable alternative for structured extraction tasks. |
 
 ---
 
 ## 🤝 Contributing
 
-Contributions are welcome! Here are some ideas:
+Contributions are highly welcome! I am actively looking for help in the following areas:
 
-- [ ] Add more data sources (BSE, Moneycontrol scraper)
-- [ ] Historical IPO performance tracking
-- [ ] Subscription status live tracker
-- [ ] PDF upload support (for unlisted/pre-filing companies)
-- [ ] Deploy to Streamlit Cloud
+- [ ] **Automated Data Ingestion**: Finding reliable ways to bypass the NSE firewall (e.g., residential proxies) so the precache script can return to a fully automated GitHub Action.
+- [ ] **RAG Latency**: Optimizing the semantic search and LLM inference time.
+- [ ] **UI/UX**: Enhancing the static frontend dashboard.
+- [ ] **New Data Sources**: Integrating BSE data or additional sentiment streams.
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
@@ -262,26 +223,12 @@ Contributions are welcome! Here are some ideas:
 
 ---
 
-## 📜 License
-
-This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
-
----
-
 ## ⚠️ Disclaimer
 
-This tool is for **educational and research purposes only**. It does not constitute financial advice. Always do your own due diligence before making investment decisions. The accuracy of extracted data depends on the quality of the source documents and LLM outputs.
+This tool is for **educational and portfolio demonstration purposes only**. It does not constitute financial advice. Always perform your own due diligence before making investment decisions. The accuracy of extracted data depends on the quality of the source documents and LLM outputs.
 
 ---
 
-<p align="center">
-  <strong>Built with ❤️ for the Indian investor community</strong>
-</p>
+## 📜 License
 
-<p align="center">
-  <a href="#-demo">Demo</a> •
-  <a href="#-features">Features</a> •
-  <a href="#-quick-start">Quick Start</a> •
-  <a href="#-architecture">Architecture</a> •
-  <a href="#-contributing">Contributing</a>
-</p>
+This project is licensed under the **MIT License**.

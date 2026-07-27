@@ -1,0 +1,424 @@
+{
+    "meta":  {
+                 "slug":  "Caliber_Mining_and_Logistics_Limited",
+                 "exchange":  "BSE, NSE",
+                 "company_name":  "Caliber Mining and Logistics Limited",
+                 "last_updated":  "2026-07-20T22:25:05.016935"
+             },
+    "exchange":  "NSE",
+    "sentiment":  {
+                      "gmp":  100.0,
+                      "score":  2.5,
+                      "summary":  [
+                                      "Caliber Mining and Logistics Limited IPO is priced at a P/BV of 2.44 and P/E of 15.51 based on FY26 earnings",
+                                      "The company has reported an average EPS of Rs. 25.00 and an average RoNW of 23.17% for the last two fiscals",
+                                      "The issue appears fully priced, with bumper earnings for 9M-FY26 that may not be sustained"
+                                  ],
+                      "articles":  [
+                                       {
+                                           "url":  "https://ipowatch.in/caliber-mining-ipo",
+                                           "title":  "Caliber Mining IPO Date, Review, Price, Allotment Details",
+                                           "source":  "Tavily/ipowatch.in"
+                                       },
+                                       {
+                                           "url":  "https://www.investorgain.com/ipo/caliber-mining-ipo/1610",
+                                           "title":  "Caliber Mining IPO Details 2026 Date, Price, GMP \u0026 Review",
+                                           "source":  "Tavily/www.investorgain.com"
+                                       },
+                                       {
+                                           "url":  "https://ipowatch.in/caliber-mining-ipo-gmp-grey-market-premium",
+                                           "title":  "Caliber Mining IPO GMP, Grey Market Premium Today",
+                                           "source":  "Tavily/ipowatch.in"
+                                       },
+                                       {
+                                           "url":  "https://zerodha.com/ipo/413202/caliber-mining-and-logistics",
+                                           "title":  "Caliber Mining and Logistics IPO",
+                                           "source":  "Tavily/zerodha.com"
+                                       },
+                                       {
+                                           "url":  "https://www.livemint.com/market/ipo/caliber-mining-ipo-day-1-gmp-subscription-status-review-other-details-apply-or-not-11784260411322.html",
+                                           "title":  "Caliber Mining IPO Day 1: GMP, subscription status, review ...",
+                                           "source":  "Tavily/www.livemint.com"
+                                       },
+                                       {
+                                           "url":  "https://economictimes.indiatimes.com/markets/ipos/fpos/caliber-mining-logistics-ipo-day-2-gmp-signals-27-listing-gain-issue-sees-strong-investor-demand/articleshow/132505289.cms",
+                                           "title":  "Caliber Mining \u0026 Logistics IPO Day 2: Issue gets 7.5x ...",
+                                           "source":  "Tavily/economictimes.indiatimes.com"
+                                       },
+                                       {
+                                           "url":  "https://www.chittorgarh.com/ipo/caliber-mining-ipo/1999",
+                                           "title":  "Caliber Mining IPO Date, Price, GMP, Review, Details",
+                                           "source":  "Tavily/www.chittorgarh.com"
+                                       },
+                                       {
+                                           "url":  "https://www.livemint.com/market/ipo/caliber-mining-and-logistics-ltd-ipo-ipo1242",
+                                           "title":  "Caliber Mining and Logistics Ltd. IPO - Mint",
+                                           "source":  "Tavily/www.livemint.com"
+                                       },
+                                       {
+                                           "url":  "https://news.google.com/rss/articles/CBMizgFBVV95cUxOVUdYTnFhaTVmTWJuU0M2UUljcGFkTzhGVjMxNHRtOGFZTkQ5SjRfQXlPZzFKZWpKajdhNEdRMmFtZGxWRjctSlRKTGlCQU5ndlZiRURtb3dUTlppQ1hGUGpRTlpRUXdHeXV0N0xHaTJrczFiTVV6YnBHRnpCSWZzMDViVnp1RVNqUGoyaW9fLXN0clV3VlNHYV9kcmZnYlB0Z3pobElUVVIyanVvRDV0VjZuZW1ZVjdQcEM4RVU1dmxKSzQ3b0lpb29uX2Exdw?oc=5",
+                                           "title":  "Caliber Mining IPO 2026: Complete Review, GMP, Price Band, Allotment Date, and Subscription Details - India Infoline",
+                                           "source":  "Google News"
+                                       },
+                                       {
+                                           "url":  "https://news.google.com/rss/articles/CBMi_AFBVV95cUxOU3Y5MzFxZFRCbExIY3ZiQVFTS1JZRzU0OHI0RFd3LWc1ZXJmRFdROWxZZ29uelRIcWJ0dVppbndCVEdLU3MwOHhoYnFTYWV3ZGhQRTdlVi1oc0pvWnZvY3YyN2ZVcEdtd3JBaGt6WmRpZ0N1VGFYa0NEc2E2OVdjcHZhczF0TGgzdTVJV25SQWRqVDVjaHZ5aEwzQmdIRk1nSGFLa0M1QXl1VEdUY0t5UVhVMEdrQzhzNjEtcURoNk15M1Fkam52ckJvRG8zMXoteEpoMWhBdXlfdHVLaWh2SkZsd2lGSUh0X2dlVENqWC0tTFJyWkpHaDVSclLSAYICQVVfeXFMUHZZeEw5MGI1Z0gwLWlPSlU5RkctdXplcGVNQWp6YnZGNFV3RUxhZUVIWnBicXpmenZKZFMtcVhSTmRObGRwdTNOaVB6MURONnJSTWhHLTZORDJURlk3N0ZRMUVDbTBkRWxFLXN6aG1GWmFlb21LWEZ4RV90V2E4YkhVejhCeUZoTktwS1ZmSEg1cG9uRG52X1FnaDRtbHl0c3E5d3pBbGp3bXNlN0xTczRBZTUwTmlvcGUxWWRfQVYxRWk5cEgtYnFMMnM3RWltTjY0NVN2eUhEMzlVTEdjTmtuMjB2aURsVTRxbzRFZm9YNmpQb3BfQWJqTy1jWlBpb1Vn?oc=5",
+                                           "title":  "Caliber Mining \u0026 Logistics IPO Day 2: Issue gets 7.5x subscription so far; GMP points to 27% listing upsid - The Economic Times",
+                                           "source":  "Google News"
+                                       }
+                                   ],
+                      "negatives":  [
+                                        "The issue appears fully priced, with a high P/E ratio based on FY25 earnings",
+                                        "The company\u0027s post-IPO NAV data is missing from the offer documents",
+                                        "The QIB segment has been subscribed to only 0.29 times, indicating low institutional interest"
+                                    ],
+                      "positives":  [
+                                        "The company has posted PAT margins of 17.56% (FY23), 16.92% (FY24), 8.97% (FY25), 16.65% (9M-FY26)",
+                                        "Revenue increased by 17% and profit after tax (PAT) rose by 20% between FY25 and FY26"
+                                    ],
+                      "sources_used":  [
+                                           "Tavily",
+                                           "Google News"
+                                       ],
+                      "subscription":  {
+                                           "nii":  "1.59x",
+                                           "qib":  "0.29x",
+                                           "total":  "1.21x",
+                                           "retail":  "1.58x"
+                                       },
+                      "sentiment_label":  "Negative"
+                  },
+    "strengths":  [
+                      {
+                          "category":  "Business \u0026 Operational Strengths",
+                          "description":  "The company competes based on service quality, reliability, pricing, and the ability to understand and address evolving industry trends and customer requirements."
+                      },
+                      {
+                          "category":  "Business \u0026 Operational Strengths",
+                          "description":  "The availability and configuration of trucks, equipment, and machinery comprehensively address varying requirements of mining and iron ore customers."
+                      },
+                      {
+                          "category":  "Business \u0026 Operational Strengths",
+                          "description":  "The company has integrated contract mining and logistics services to optimize resource utilization and achieve economies of scale."
+                      },
+                      {
+                          "category":  "Business \u0026 Operational Strengths",
+                          "description":  "The company has expanded its logistics solutions offerings to cater to the entire value chain for customers."
+                      },
+                      {
+                          "category":  "Financial Strengths",
+                          "description":  "The company has strong financials, no defaults with financial institutions, and is well-positioned to execute existing and new orders."
+                      },
+                      {
+                          "category":  "Management \u0026 Promoter Strengths",
+                          "description":  "The company depends on the management skills and guidance of its Promoters and Board of Directors for business strategy development and implementation."
+                      },
+                      {
+                          "category":  "Management \u0026 Promoter Strengths",
+                          "description":  "The company\u0027s future performance depends on its ability to retain key managerial personnel and senior management."
+                      },
+                      {
+                          "category":  "Management \u0026 Promoter Strengths",
+                          "description":  "The company has structured remuneration policies to attract, retain, and motivate high-quality directors and key personnel."
+                      },
+                      {
+                          "category":  "Market \u0026 Competitive Strengths",
+                          "description":  "The company has long-standing relationships with key customers, including CIL, resulting in repeat business."
+                      },
+                      {
+                          "category":  "Market \u0026 Competitive Strengths",
+                          "description":  "The company has a strong reputation in the industry, contributing to its competitive position."
+                      },
+                      {
+                          "category":  "Product \u0026 Technology Strengths",
+                          "description":  "The company offers logistics solutions for iron ore customers, enhancing its service portfolio."
+                      },
+                      {
+                          "category":  "Product \u0026 Technology Strengths",
+                          "description":  "The company leverages economies of scale through optimized utilization of plant, machinery, and human resources."
+                      }
+                  ],
+    "basic_info":  {
+                       "lot_size":  35,
+                       "face_value":  "?10",
+                       "issue_size":  "?450 Cr",
+                       "market_cap":  "?2,772 Cr",
+                       "price_band":  "?402 - ?424",
+                       "fresh_issue":  "?450 Cr",
+                       "listing_date":  "2026-07-24",
+                       "bid_open_date":  "2026-07-17",
+                       "bid_close_date":  "2026-07-21",
+                       "offer_for_sale":  null,
+                       "promoter_holding_pre_pct":  90,
+                       "promoter_holding_post_pct":  null
+                   },
+    "issue_size":  "7,835,821",
+    "management":  {
+                       "promoters":  [
+                                         {
+                                             "name":  "Chadda Family",
+                                             "type":  "Promoter Group"
+                                         }
+                                     ],
+                       "litigations":  {
+                                           "details":  null,
+                                           "status_summary":  null
+                                       },
+                       "key_management":  [
+                                              {
+                                                  "name":  "Mohit Satishkumar Chadda",
+                                                  "role":  "Chairman \u0026 Managing Director"
+                                              },
+                                              {
+                                                  "name":  "Rahul Chadda",
+                                                  "role":  "Whole Time Director"
+                                              },
+                                              {
+                                                  "name":  "Nikhil Karwa",
+                                                  "role":  "Chief Financial Officer"
+                                              },
+                                              {
+                                                  "name":  "Riddhi Varma",
+                                                  "role":  "Company Secretary"
+                                              }
+                                          ]
+                   },
+    "price_band":  "Rs.402 to Rs.424",
+    "risk_factors":  [
+                         {
+                             "category":  "Regulatory \u0026 Legal Risks",
+                             "description":  "Adverse decisions in criminal proceedings against Promoters or pre-litigation notices against the Company may render us liable to penalties and adversely affect our business, results of operations, and financial condition."
+                         },
+                         {
+                             "category":  "Regulatory \u0026 Legal Risks",
+                             "description":  "Pending legal proceedings involving the Company and Promoters before various courts, tribunals, and authorities could result in adverse rulings that may negatively impact our business, results of operations, and financial condition."
+                         },
+                         {
+                             "category":  "Regulatory \u0026 Legal Risks",
+                             "description":  "Application or interpretation of the Competition Act or enforcement proceedings by the CCI, including penalties or adverse publicity, could adversely affect our business, results of operations, cash flows, and prospects."
+                         },
+                         {
+                             "category":  "Regulatory \u0026 Legal Risks",
+                             "description":  "Failure to enforce judgments of foreign courts against us may limit investors\u0027 ability to recover claims."
+                         },
+                         {
+                             "category":  "Business \u0026 Operational Risks",
+                             "description":  "Failure to adequately verify personnel backgrounds and qualifications may result in deficient services, claims, and reputational damage."
+                         },
+                         {
+                             "category":  "Business \u0026 Operational Risks",
+                             "description":  "Errors, malicious acts, or violations of security, privacy, health, and safety regulations by our manpower could lead to litigation, claims, and reputational harm."
+                         },
+                         {
+                             "category":  "Business \u0026 Operational Risks",
+                             "description":  "Damage to customers’ facilities or property due to negligence or criminal acts by our manpower may result in claims, litigation, and indemnification obligations."
+                         },
+                         {
+                             "category":  "Business \u0026 Operational Risks",
+                             "description":  "Acts of third-party service providers or vendors may adversely affect our operations and expose us to claims and proceedings."
+                         },
+                         {
+                             "category":  "Regulatory \u0026 Legal Risks",
+                             "description":  "Outstanding litigation matters may not be settled in our favor, and additional liabilities could arise, diverting management time and financial resources."
+                         },
+                         {
+                             "category":  "Regulatory \u0026 Legal Risks",
+                             "description":  "Complaints, claims, or legal actions brought by persons before various forums could result in regulatory sanctions, penalties, and reputational harm."
+                         },
+                         {
+                             "category":  "Business \u0026 Operational Risks",
+                             "description":  "Breach of security requirements, misappropriation of funds, or failure to observe operational standards by employees could lead to misconduct risks and reputational damage."
+                         },
+                         {
+                             "category":  "Business \u0026 Operational Risks",
+                             "description":  "Inability to detect and prevent misconduct by employees may expose the Company to liabilities and operational disruptions."
+                         },
+                         {
+                             "category":  "Business \u0026 Operational Risks",
+                             "description":  "Failure to maintain confidential information of customers could adversely affect our reputation, business, results of operations, and financial condition."
+                         },
+                         {
+                             "category":  "Business \u0026 Operational Risks",
+                             "description":  "Termination or non-renewal of leases for registered offices, branch offices, or site offices on unfavorable terms could disrupt our business operations."
+                         },
+                         {
+                             "category":  "Regulatory \u0026 Legal Risks",
+                             "description":  "Non-compliance with Corporate Social Responsibility (CSR) requirements under the Companies Act, 2013, may result in penalties and reputational harm."
+                         },
+                         {
+                             "category":  "Regulatory \u0026 Legal Risks",
+                             "description":  "Intellectual property infringement claims by third parties may require costly defenses and indemnification of customers, potentially leading to operational disruptions."
+                         },
+                         {
+                             "category":  "Regulatory \u0026 Legal Risks",
+                             "description":  "Unavailability of necessary licenses on satisfactory terms could hinder our business operations and growth prospects."
+                         },
+                         {
+                             "category":  "Business \u0026 Operational Risks",
+                             "description":  "Settlement of claims or legal actions against us could be costly and may require entering into expensive royalty or licensing agreements."
+                         },
+                         {
+                             "category":  "Business \u0026 Operational Risks",
+                             "description":  "Failure to detect and prevent misconduct by employees may result in regulatory sanctions, penalties, and reputational harm."
+                         }
+                     ],
+    "peer_comparison":  [
+                            {
+                                "pe":  22.94,
+                                "name":  "Power Mech Projects Limited",
+                                "revenue":  "?6,06,157.00 Lac",
+                                "pat_margin_pct":  15.9
+                            },
+                            {
+                                "pe":  13.59,
+                                "name":  "NCC Limited",
+                                "revenue":  "?20,82,300.00 Lac",
+                                "pat_margin_pct":  9.02
+                            },
+                            {
+                                "pe":  97.15,
+                                "name":  "Sindhu Trade Links Limited",
+                                "revenue":  "?52,408.11 Lac",
+                                "pat_margin_pct":  2.54
+                            },
+                            {
+                                "pe":  4.95,
+                                "name":  "Dilip Buildcon Limited",
+                                "revenue":  "?8,98,393.12 Lac",
+                                "pat_margin_pct":  20.09
+                            }
+                        ],
+    "company_overview":  {
+                             "name":  "Caliber Mining and Logistics Limited",
+                             "industry":  "Mining and Logistics",
+                             "ipo_status":  "Upcoming",
+                             "headquarters":  {
+                                                  "corporate_office":  "MIDC Chandrapur Industrial Area, Plot No. B-38 to B-48, Chinchala, Chandrapur, Maharashtra - 442406",
+                                                  "registered_office":  "Not explicitly disclosed in RHP"
+                                              },
+                             "incorporation_year":  2014
+                         },
+    "objects_of_issue":  {
+                             "breakdown":  [
+                                               {
+                                                   "amount":  "?450 Cr",
+                                                   "purpose":  "Funding capital expenditure for expansion of mining and logistics operations"
+                                               }
+                                           ],
+                             "categories":  [
+                                                "Capital Expenditure",
+                                                "General Corporate Purposes"
+                                            ],
+                             "total_amount":  "?450 Cr"
+                         },
+    "business_overview":  {
+                              "business_model":  "Integrated mining and logistics company providing end-to-end services across the coal mining value chain, including contract coal extraction, overburden removal, coal loading/unloading, road transportation, rake loading, rail coordination, and coal trading.",
+                              "revenue_streams":  [
+                                                      "Contract mining services",
+                                                      "Logistics operations",
+                                                      "Coal trading"
+                                                  ],
+                              "competitive_moat":  "Execution experience, operational efficiencies, strong order book, and legacy-led promoters with a proven track record in the mining and logistics sector.",
+                              "customer_segments":  [
+                                                        "Coal India subsidiaries",
+                                                        "Other mining and logistics customers"
+                                                    ]
+                          },
+    "financial_summary":  {
+                              "key_metrics":  {
+                                                  "sector_kpis":  [
+                                                                      {
+                                                                          "label":  "Revenue Growth (%)",
+                                                                          "value":  "17.29"
+                                                                      },
+                                                                      {
+                                                                          "label":  "Asset Turnover Ratio",
+                                                                          "value":  "0.96"
+                                                                      },
+                                                                      {
+                                                                          "label":  "Current Ratio",
+                                                                          "value":  "1.02x"
+                                                                      },
+                                                                      {
+                                                                          "label":  "Debt Equity Ratio",
+                                                                          "value":  "1.63x"
+                                                                      }
+                                                                  ],
+                                                  "balance_sheet":  [
+                                                                        {
+                                                                            "label":  "Net Worth (? Cr)",
+                                                                            "value":  "647.54"
+                                                                        },
+                                                                        {
+                                                                            "label":  "Total Borrowing (? Cr)",
+                                                                            "value":  "1,057.61"
+                                                                        },
+                                                                        {
+                                                                            "label":  "Reserves and Surplus (? Cr)",
+                                                                            "value":  "593.96"
+                                                                        }
+                                                                    ],
+                                                  "return_ratios":  [
+                                                                        {
+                                                                            "label":  "Return on Net Worth (%)",
+                                                                            "value":  "24.38"
+                                                                        },
+                                                                        {
+                                                                            "label":  "Return on Capital Employed (%)",
+                                                                            "value":  "16.60"
+                                                                        },
+                                                                        {
+                                                                            "label":  "Return on Average Equity (%)",
+                                                                            "value":  "27.78"
+                                                                        },
+                                                                        {
+                                                                            "label":  "Return on Average Assets (%)",
+                                                                            "value":  "9.07"
+                                                                        }
+                                                                    ],
+                                                  "valuation_multiples":  [
+                                                                              {
+                                                                                  "label":  "P/E (Post Issue)",
+                                                                                  "value":  "18x"
+                                                                              },
+                                                                              {
+                                                                                  "label":  "P/BV",
+                                                                                  "value":  "2.44"
+                                                                              }
+                                                                          ]
+                                              },
+                              "ipo_structure":  "Combination of Fresh Issue (?450 Cr) and Offer for Sale (OFS) by promoters.",
+                              "yearly_financials":  [
+                                                        {
+                                                            "cfo":  null,
+                                                            "eps":  29.47,
+                                                            "pat":  "?15,784.84 Lac",
+                                                            "year":  "FY2026",
+                                                            "ebitda":  "?43,091.96 Lac",
+                                                            "revenue":  "?1,67,766.09 Lac",
+                                                            "pat_margin_pct":  9.41,
+                                                            "ebitda_margin_pct":  null
+                                                        },
+                                                        {
+                                                            "cfo":  null,
+                                                            "eps":  null,
+                                                            "pat":  "?13,154.88 Lac",
+                                                            "year":  "FY2025",
+                                                            "ebitda":  "?34,977.00 Lac",
+                                                            "revenue":  "?1,43,040.38 Lac",
+                                                            "pat_margin_pct":  9.2,
+                                                            "ebitda_margin_pct":  null
+                                                        },
+                                                        {
+                                                            "cfo":  null,
+                                                            "eps":  null,
+                                                            "pat":  "?9,590.22 Lac",
+                                                            "year":  "FY2024",
+                                                            "ebitda":  "?24,314.00 Lac",
+                                                            "revenue":  "?95,311.60 Lac",
+                                                            "pat_margin_pct":  10.06,
+                                                            "ebitda_margin_pct":  null
+                                                        }
+                                                    ],
+                              "pre_ipo_placements":  null
+                          }
+}
