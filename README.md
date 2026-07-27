@@ -37,7 +37,7 @@ I built this project to demonstrate a complete lifecycle of a complex AI applica
 
 **Live Deployment**: [https://ipo.supreme.codes](https://ipo.supreme.codes)
 
-*(Demo video placeholder - https://github.com/user-attachments/assets/0bf86099-331b-4f11-b2d5-f36b7cc8c502)*
+https://github.com/user-attachments/assets/0bf86099-331b-4f11-b2d5-f36b7cc8c502
 
 ---
 
