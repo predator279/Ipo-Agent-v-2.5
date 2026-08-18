@@ -202,8 +202,8 @@ GEMINI_EXTRACTION_MODEL  = "gemini-3.1-flash-lite"
 GEMINI_CHAT_MODEL        = "gemini-3.1-flash-lite"
 
 # Groq Model:
-# llama-3.3-70b-versatile has 30 RPM but tight 12k TPM limit. Ideal for sentiment analysis.
-GROQ_SENTIMENT_MODEL     = "llama-3.3-70b-versatile"
+# openai/gpt-oss-120b is recommended for sentiment analysis on Groq.
+GROQ_SENTIMENT_MODEL     = "openai/gpt-oss-120b"
 
 # Mistral Models:
 # mistral-small-latest is highly responsive (~2.1s) and has high free-tier rate limits.
@@ -212,7 +212,7 @@ MISTRAL_CHAT_MODEL       = "mistral-small-latest"
 
 # Legacy/General constants (backwards compatibility)
 GEMINI_MODEL = "gemini-3.1-flash-lite"
-GROQ_MODEL   = "llama-3.3-70b-versatile"
+GROQ_MODEL   = "openai/gpt-oss-120b"
 # ─────────────────────────────────────────────────────────────────────────────
 
 
@@ -300,7 +300,7 @@ def get_llm(
     # ── Resolve Provider Explicit Requests ───────────────────────────────────
     model_lower         = (model_name or "").lower()
     is_gemini_explicit  = "gemini" in model_lower
-    is_llama            = "llama"  in model_lower
+    is_groq_implicit    = "llama" in model_lower or "qwen" in model_lower or "gpt-oss" in model_lower
     is_groq_explicit    = provider == "groq"
     is_mistral_explicit = provider == "mistral" or "mistral" in model_lower
 
@@ -311,7 +311,7 @@ def get_llm(
     if is_gemini_explicit:
         resolved_provider = "gemini"
         resolved_model = model_name
-    elif is_llama or is_groq_explicit:
+    elif is_groq_implicit or is_groq_explicit:
         resolved_provider = "groq"
         resolved_model = model_name or GROQ_SENTIMENT_MODEL
     elif is_mistral_explicit:

@@ -106,7 +106,7 @@ def get_rag_chain(ipo_name: str):
     groq_key = os.environ.get("GROQ_API_KEY")
     if groq_key:
         from langchain_groq import ChatGroq
-        llm = ChatGroq(temperature=0, model_name="llama-3.3-70b-versatile", groq_api_key=groq_key)
+        llm = ChatGroq(temperature=0, model_name="openai/gpt-oss-120b", groq_api_key=groq_key)
     else:
         from langchain_google_genai import ChatGoogleGenerativeAI
         gemini_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")

@@ -1,7 +1,7 @@
 # chatbot_agent.py  (v3 — Gemini/Groq waterfall, Qdrant Cloud support, batch-256)
 #
 # Changes vs v2:
-#   1. LLM waterfall: Gemini 2.0 Flash → Groq llama-3.3-70b (uses agents/tools.py get_llm)
+#   1. LLM waterfall: Gemini 2.0 Flash → Groq gpt-oss-120b (uses agents/tools.py get_llm)
 #   2. Qdrant Cloud vectorstore support (env flag USE_QDRANT=true)
 #   3. Embedding batch size: 64 → 256 (4× faster embedding)
 #   4. _ipo_is_cached() helper for nightly pre-cacher
@@ -274,7 +274,7 @@ def create_rag_chain(vectorstore, llm_provider: str = "auto"):
     except RuntimeError as exc:
         print(f"⚠️  get_llm() failed ({exc}). Trying Groq directly...")
         from langchain_groq import ChatGroq
-        llm = ChatGroq(temperature=0, model_name="llama-3.3-70b-versatile")
+        llm = ChatGroq(temperature=0, model_name="openai/gpt-oss-120b")
 
     # ── dense retriever with MMR ─────────────────────────────────────────────
     dense_retriever = vectorstore.as_retriever(
