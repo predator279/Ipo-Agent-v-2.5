@@ -450,7 +450,7 @@ with tab_analysis:
                         st.markdown(f"- **{k.replace('_',' ').title()}:** {v}")
 
         # ── E: Peer Comparison ────────────────────────────────────────────────
-        if profile.peer_comparison:
+        if profile.peer_comparison and isinstance(profile.peer_comparison, list):
             st.markdown('<div class="section-header">Peer Comparison</div>', unsafe_allow_html=True)
             st.dataframe(pd.DataFrame(profile.peer_comparison), use_container_width=True, hide_index=True)
 

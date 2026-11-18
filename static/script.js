@@ -325,55 +325,60 @@ async function fetchIPODetails(ipoName) {
 
         // 1. Key Metrics
         const keyMetrics = fin.key_metrics || {};
-        const bsArr = keyMetrics.balance_sheet || [];
-        const rrArr = keyMetrics.return_ratios || [];
-        const vmArr = keyMetrics.valuation_multiples || [];
-        const skArr = keyMetrics.sector_kpis || [];
+        const bsArr = Array.isArray(keyMetrics.balance_sheet) ? keyMetrics.balance_sheet : [];
+        const rrArr = Array.isArray(keyMetrics.return_ratios) ? keyMetrics.return_ratios : [];
+        const vmArr = Array.isArray(keyMetrics.valuation_multiples) ? keyMetrics.valuation_multiples : [];
+        const skArr = Array.isArray(keyMetrics.sector_kpis) ? keyMetrics.sector_kpis : [];
         
         if (bsArr.length || rrArr.length || vmArr.length || skArr.length) {
             document.getElementById('key-metrics-section-container').classList.remove('hidden');
             
             if (bsArr.length) {
                 document.getElementById('metrics-col-bs').classList.remove('hidden');
-                document.getElementById('metrics-bs-list').innerHTML = bsArr.map(x => `<li><strong>${x.label}:</strong> <span style="color:var(--text-main)">${x.value}</span></li>`).join('');
+                document.getElementById('metrics-bs-list').innerHTML = bsArr.map(x => `<li><strong>${x.label || 'Metric'}:</strong> <span style="color:var(--text-main)">${x.value || '—'}</span></li>`).join('');
             } else { document.getElementById('metrics-col-bs').classList.add('hidden'); }
             
             if (rrArr.length || vmArr.length) {
                 document.getElementById('metrics-col-ratios').classList.remove('hidden');
                 if (rrArr.length) {
                     document.getElementById('metrics-ratios-sub').classList.remove('hidden');
-                    document.getElementById('metrics-ratios-list').innerHTML = rrArr.map(x => `<li><strong>${x.label}:</strong> <span style="color:var(--text-main)">${x.value}</span></li>`).join('');
+                    document.getElementById('metrics-ratios-list').innerHTML = rrArr.map(x => `<li><strong>${x.label || 'Ratio'}:</strong> <span style="color:var(--text-main)">${x.value || '—'}</span></li>`).join('');
                 } else { document.getElementById('metrics-ratios-sub').classList.add('hidden'); }
                 if (vmArr.length) {
                     document.getElementById('metrics-valuation-sub').classList.remove('hidden');
-                    document.getElementById('metrics-valuation-list').innerHTML = vmArr.map(x => `<li><strong>${x.label}:</strong> <span style="color:var(--text-main)">${x.value}</span></li>`).join('');
+                    document.getElementById('metrics-valuation-list').innerHTML = vmArr.map(x => `<li><strong>${x.label || 'Multiple'}:</strong> <span style="color:var(--text-main)">${x.value || '—'}</span></li>`).join('');
                 } else { document.getElementById('metrics-valuation-sub').classList.add('hidden'); }
             } else { document.getElementById('metrics-col-ratios').classList.add('hidden'); }
             
             if (skArr.length) {
                 document.getElementById('metrics-col-kpis').classList.remove('hidden');
-                document.getElementById('metrics-kpis-list').innerHTML = skArr.map(x => `<li><strong>${x.label}:</strong> <span style="color:var(--text-main)">${x.value}</span></li>`).join('');
+                document.getElementById('metrics-kpis-list').innerHTML = skArr.map(x => `<li><strong>${x.label || 'KPI'}:</strong> <span style="color:var(--text-main)">${x.value || '—'}</span></li>`).join('');
             } else { document.getElementById('metrics-col-kpis').classList.add('hidden'); }
         }
 
         // 2. Peer Comparison
-        const peers = data.peer_comparison || [];
+        const rawPeers = data.peer_comparison;
+        const peers = Array.isArray(rawPeers) 
+            ? rawPeers.filter(p => p && typeof p === 'object' && p.name && p.name !== 'NA' && p.name !== '-' && p.name !== '—') 
+            : [];
         if (peers.length > 0) {
             document.getElementById('peer-comparison-section-container').classList.remove('hidden');
             document.getElementById('peer-tbody').innerHTML = peers.map(p => `
                 <tr>
                     <td style="color:var(--text-main); font-weight:500;">${p.name || '—'}</td>
-                    <td>${p.pe !== null && p.pe !== undefined ? p.pe : '—'}</td>
-                    <td>${p.revenue !== null && p.revenue !== undefined ? p.revenue : '—'}</td>
-                    <td>${p.pat_margin_pct !== null && p.pat_margin_pct !== undefined ? p.pat_margin_pct : '—'}</td>
+                    <td>${p.pe !== null && p.pe !== undefined && p.pe !== 'NA' ? p.pe : '—'}</td>
+                    <td>${p.revenue !== null && p.revenue !== undefined && p.revenue !== 'NA' ? p.revenue : '—'}</td>
+                    <td>${p.pat_margin_pct !== null && p.pat_margin_pct !== undefined && p.pat_margin_pct !== 'NA' ? p.pat_margin_pct : '—'}</td>
                 </tr>
             `).join('');
+        } else {
+            document.getElementById('peer-comparison-section-container').classList.add('hidden');
         }
 
         // 3. Objects of the Issue
         const objects = data.objects_of_issue || {};
-        const objBreakdown = objects.breakdown || [];
-        const objCategories = objects.categories || [];
+        const objBreakdown = Array.isArray(objects.breakdown) ? objects.breakdown : [];
+        const objCategories = Array.isArray(objects.categories) ? objects.categories : [];
         
         if (objects.total_amount || objBreakdown.length || objCategories.length) {
             document.getElementById('objects-issue-section-container').classList.remove('hidden');
@@ -415,23 +420,23 @@ async function fetchIPODetails(ipoName) {
 
         // 4. Management
         const mgt = data.management || {};
-        const keyMgt = mgt.key_management || [];
-        const promoters = mgt.promoters || [];
-        const litigations = mgt.litigations || {};
+        const keyMgt = Array.isArray(mgt.key_management) ? mgt.key_management : [];
+        const promoters = Array.isArray(mgt.promoters) ? mgt.promoters : [];
+        const litigations = (typeof mgt.litigations === 'object' && mgt.litigations) ? mgt.litigations : {};
         
         if (keyMgt.length || promoters.length || litigations.status_summary || litigations.details) {
             document.getElementById('management-section-container').classList.remove('hidden');
             
             if (keyMgt.length) {
                 document.getElementById('mgmt-key-col').classList.remove('hidden');
-                document.getElementById('mgmt-key-list').innerHTML = keyMgt.map(m => `<span class="badge" style="display:flex; justify-content:flex-start; padding: 0.75rem 1rem;"><i data-lucide="user" style="width:16px;height:16px;margin-right:0.5rem;color:var(--accent);"></i> <strong style="color:var(--text-main)">${m.name}</strong> <span style="margin-left:auto;color:var(--text-muted);font-weight:400;">${m.role}</span></span>`).join('');
+                document.getElementById('mgmt-key-list').innerHTML = keyMgt.map(m => `<span class="badge" style="display:flex; justify-content:flex-start; padding: 0.75rem 1rem;"><i data-lucide="user" style="width:16px;height:16px;margin-right:0.5rem;color:var(--accent);"></i> <strong style="color:var(--text-main)">${m.name || '—'}</strong> <span style="margin-left:auto;color:var(--text-muted);font-weight:400;">${m.role || ''}</span></span>`).join('');
             } else { document.getElementById('mgmt-key-col').classList.add('hidden'); }
             
             if (promoters.length) {
                 document.getElementById('mgmt-promoters-col').classList.remove('hidden');
                 document.getElementById('mgmt-promoters-list').innerHTML = promoters.map(p => {
                     let typeStr = p.type ? ` (${p.type})` : '';
-                    return `<span class="badge" style="display:flex; justify-content:flex-start; padding: 0.75rem 1rem;"><i data-lucide="building" style="width:16px;height:16px;margin-right:0.5rem;color:var(--accent);"></i> <strong style="color:var(--text-main)">${p.name}</strong><span style="margin-left:auto;color:var(--text-muted);font-weight:400;">${typeStr}</span></span>`;
+                    return `<span class="badge" style="display:flex; justify-content:flex-start; padding: 0.75rem 1rem;"><i data-lucide="building" style="width:16px;height:16px;margin-right:0.5rem;color:var(--accent);"></i> <strong style="color:var(--text-main)">${p.name || '—'}</strong><span style="margin-left:auto;color:var(--text-muted);font-weight:400;">${typeStr}</span></span>`;
                 }).join('');
             } else { document.getElementById('mgmt-promoters-col').classList.add('hidden'); }
             
@@ -445,11 +450,11 @@ async function fetchIPODetails(ipoName) {
         }
 
         // 5. Strengths & Risks (Positives & Cons)
-        const sent = data.sentiment || {};
+        const sent = (typeof data.sentiment === 'object' && data.sentiment) ? data.sentiment : {};
         
         // Sentiment Tab -> Positives and Concerns layout
-        const pos = sent.positives || [];
-        const cons = sent.negatives || [];
+        const pos = Array.isArray(sent.positives) ? sent.positives : [];
+        const cons = Array.isArray(sent.negatives) ? sent.negatives : [];
         
         if (pos.length > 0) {
             document.getElementById('sentiment-positives-grid').innerHTML = pos.map(p => `<li><i data-lucide="check-circle-2" style="width:18px;height:18px;"></i> <span style="color:var(--text-main)">${p}</span></li>`).join('');
@@ -521,13 +526,15 @@ async function fetchIPODetails(ipoName) {
         }
 
         // Map Strengths to details dropdown using data.key_strengths
-        const strengthsArr = data.key_strengths || data.strengths || [];
-        if (strengthsArr && Array.isArray(strengthsArr) && strengthsArr.length > 0) {
+        const rawStrengths = data.key_strengths || data.strengths || [];
+        const strengthsArr = Array.isArray(rawStrengths) ? rawStrengths : [];
+        if (strengthsArr.length > 0) {
             const groups = {};
             strengthsArr.forEach(s => {
-                const c = s.category || 'Other Strengths';
+                const c = (typeof s === 'object' && s && s.category) ? s.category : 'Other Strengths';
+                const desc = (typeof s === 'object' && s) ? (s.description || s.point || JSON.stringify(s)) : String(s);
                 if (!groups[c]) groups[c] = [];
-                groups[c].push(s.description);
+                groups[c].push(desc);
             });
             
             let sHtml = '';
@@ -563,15 +570,17 @@ async function fetchIPODetails(ipoName) {
         }
 
         // Map Risks to details dropdown
-        const risksArr = data.risk_factors || data.key_risks || [];
-        if (risksArr && Array.isArray(risksArr) && risksArr.length > 0) {
+        const rawRisks = data.risk_factors || data.key_risks || [];
+        const risksArr = Array.isArray(rawRisks) ? rawRisks : [];
+        if (risksArr.length > 0) {
             const risksContent = document.getElementById('risks-grouped-content');
-            if (typeof risksArr[0] === 'object' && risksArr[0].category) {
+            if (typeof risksArr[0] === 'object' && risksArr[0] && risksArr[0].category) {
                 const groups = {};
                 risksArr.forEach(r => {
-                    const c = r.category || 'Other Risks';
+                    const c = (typeof r === 'object' && r && r.category) ? r.category : 'Other Risks';
+                    const desc = (typeof r === 'object' && r) ? (r.description || r.risk || JSON.stringify(r)) : String(r);
                     if (!groups[c]) groups[c] = [];
-                    groups[c].push(r.description);
+                    groups[c].push(desc);
                 });
                 
                 let risksHtml = '';
@@ -608,7 +617,7 @@ async function fetchIPODetails(ipoName) {
                 const topDesc = risksArr.slice(0, 2);
                 const restDesc = risksArr.slice(2);
                 
-                let rHtml = `<ul class="clean-list negative">${topDesc.map(r => `<li><i data-lucide="alert-triangle" style="width:18px;height:18px;"></i> <span style="color:var(--text-main)">${r}</span></li>`).join('')}</ul>`;
+                let rHtml = `<ul class="clean-list negative">${topDesc.map(r => `<li><i data-lucide="alert-triangle" style="width:18px;height:18px;"></i> <span style="color:var(--text-main)">${typeof r === 'object' ? (r.description || r.risk || JSON.stringify(r)) : r}</span></li>`).join('')}</ul>`;
                 
                 if (restDesc.length > 0) {
                      rHtml += `<details style="margin-top: 1rem; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-subcard);">
@@ -617,7 +626,7 @@ async function fetchIPODetails(ipoName) {
                                 </summary>
                                 <div style="padding: 0 1rem 1rem 1rem;">
                                     <ul class="clean-list negative" style="margin-top:0;">
-                                        ${restDesc.map(d => `<li><i data-lucide="alert-triangle" style="width:18px;height:18px;"></i> <span style="color:var(--text-main)">${d}</span></li>`).join('')}
+                                        ${restDesc.map(d => `<li><i data-lucide="alert-triangle" style="width:18px;height:18px;"></i> <span style="color:var(--text-main)">${typeof d === 'object' ? (d.description || d.risk || JSON.stringify(d)) : d}</span></li>`).join('')}
                                     </ul>
                                 </div>
                               </details>`;
@@ -685,8 +694,12 @@ async function fetchIPODetails(ipoName) {
     } catch (err) {
         document.getElementById('dashboard-loader').classList.add('hidden');
         document.getElementById('dashboard-content').classList.remove('hidden');
-        document.getElementById('ipo-title').innerText = "Error Loading Data";
-        console.error(err);
+        if (ipoName) {
+            document.getElementById('ipo-title').innerText = ipoName;
+        } else {
+            document.getElementById('ipo-title').innerText = "Error Loading Data";
+        }
+        console.error("Dashboard render error:", err);
     }
 }
 
@@ -856,13 +869,53 @@ async function handleChatSend() {
 }
 
 function parseMarkdown(text) {
-    let html = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    if (!text) return '';
+
+    // 1. Process Markdown Tables first
+    // Matches contiguous lines with pipes and a standard delimiter row |---|---|
+    const tableRegex = /((?:^[ \t]*\|.+?\|[ \t]*\r?\n)(?:^[ \t]*\|[-: ]+[-| :]*\|[ \t]*\r?\n)(?:^[ \t]*\|.+?\|[ \t]*(?:\r?\n|$))+)/gm;
+
+    let html = text.replace(tableRegex, (match) => {
+        const lines = match.trim().split(/\r?\n/).filter(line => line.trim().startsWith('|'));
+        if (lines.length < 2) return match;
+
+        const parseRow = (line) => {
+            return line
+                .replace(/^[ \t]*\|/, '')
+                .replace(/\|[ \t]*$/, '')
+                .split('|')
+                .map(cell => cell.trim());
+        };
+
+        const headers = parseRow(lines[0]);
+        const thead = `<thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>`;
+
+        const bodyRows = lines.slice(2).map(r => {
+            const cells = parseRow(r);
+            return `<tr>${cells.map(c => `<td>${c}</td>`).join('')}</tr>`;
+        }).join('');
+
+        return `<div class="chat-table-wrapper"><table class="chat-table">${thead}<tbody>${bodyRows}</tbody></table></div>\n`;
+    });
+
+    // 2. Headings
+    html = html.replace(/^### (.*$)/gim, '<h4 style="margin:0.6rem 0 0.3rem 0; font-size:0.95rem; color:var(--accent); font-weight:600;">$1</h4>');
+    html = html.replace(/^## (.*$)/gim, '<h3 style="margin:0.8rem 0 0.4rem 0; font-size:1.05rem; color:var(--accent); font-weight:600;">$1</h3>');
+    html = html.replace(/^# (.*$)/gim, '<h2 style="margin:1rem 0 0.5rem 0; font-size:1.15rem; color:var(--accent); font-weight:700;">$1</h2>');
+
+    // 3. Bold & Italic
+    html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
-    html = html.replace(/^\+ (.*$)/gim, '<li>$1</li>');
-    html = html.replace(/^\* (.*$)/gim, '<li>$1</li>');
+
+    // 4. Bullet lists
+    html = html.replace(/^[\*\+\-] (.*$)/gim, '<li>$1</li>');
     html = html.replace(/(<li>.*<\/li>)/gims, match => `<ul style="margin: 0.5rem 0; padding-left: 1.2rem;">${match}</ul>`);
     html = html.replace(/<\/ul>\s*<ul.*?>/gim, '');
-    html = html.replace(/\n/g, '<br>');
+
+    // 5. Line breaks outside tables / block elements
+    html = html.replace(/\n{2,}/g, '<br><br>');
+    html = html.replace(/(?<!<\/h[234]>|<\/div>|<\/ul>|<\/li>)\n/g, '<br>');
+
     return html;
 }
 
@@ -930,7 +983,7 @@ async function sendChatMessage(message) {
         chatHistoryEl.removeChild(loadingDiv);
         const assistantMsgDiv = document.createElement('div');
         assistantMsgDiv.className = 'chat-message assistant';
-        assistantMsgDiv.innerHTML = `<p>${parseMarkdown(answer)}</p>`;
+        assistantMsgDiv.innerHTML = `<div class="chat-body">${parseMarkdown(answer)}</div>`;
         chatHistoryEl.appendChild(assistantMsgDiv);
         chatHistoryEl.scrollTop = chatHistoryEl.scrollHeight;
     } catch (err) {

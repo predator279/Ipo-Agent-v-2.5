@@ -47,7 +47,15 @@ def get_ipo_profile(req: func.HttpRequest) -> func.HttpResponse:
             
         profile_json = response.data[0]['profile_json']
         
-        # Get the symbol to fetch NSE details
+        # Sanitize peer_comparison
+        raw_peers = profile_json.get("peer_comparison")
+        if raw_peers == "NA" or not isinstance(raw_peers, list):
+            profile_json["peer_comparison"] = []
+        else:
+            profile_json["peer_comparison"] = [
+                p for p in raw_peers
+                if isinstance(p, dict) and p.get("name") and p.get("name") != "NA"
+            ]
         registry_res = sb.table("ipo_cache_registry").select("symbol").eq("ipo_name", ipo_name).execute()
         symbol = None
         if registry_res.data and registry_res.data[0].get("symbol"):
@@ -147,6 +155,12 @@ Guidelines:
   Do NOT invent numbers or draw on external knowledge.
 - For financial metrics (revenue, PAT, EBITDA, margins), always include the fiscal year / period.
 - Respond in clear, structured prose. Use bullet points for lists of risks or objects of issue.
+
+Table & Formatting Guidelines for Narrow Chat Sidepanel:
+- Keep tables compact with at most 3 to 4 columns (e.g. `Fiscal Year | Revenue | YoY Growth`).
+- Every markdown table row MUST be strictly on a single line. NEVER put raw unescaped newlines or bullet points inside table cells `| ... |`.
+- If explaining calculations, derivations, or adjustments, place them as bullet points BELOW the table under a "Notes & Derivations" subheading.
+- If comparing several metrics across periods, prefer a clean key-value card or bullet format if a table would be too crowded for a narrow window.
 
 CONTEXT FROM RHP:
 {context}"""

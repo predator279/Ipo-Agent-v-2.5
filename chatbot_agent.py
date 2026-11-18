@@ -235,12 +235,24 @@ def process_and_store_document(
 
     for i in range(0, total_chunks, batch_size):
         batch = all_docs[i : i + batch_size]
-        if vectorstore is None:
-            vectorstore = _get_vectorstore(
-                _safe_name(ipo_name), embeddings, create=True, docs=batch
-            )
-        else:
-            vectorstore.add_documents(documents=batch)
+        success = False
+        last_err = None
+        for attempt in range(3):
+            try:
+                if vectorstore is None:
+                    vectorstore = _get_vectorstore(
+                        _safe_name(ipo_name), embeddings, create=True, docs=batch
+                    )
+                else:
+                    vectorstore.add_documents(documents=batch)
+                success = True
+                break
+            except Exception as e:
+                last_err = e
+                print(f"⚠️ Vectorstore upload attempt {attempt+1}/3 failed ({e}). Retrying in 2s...")
+                time.sleep(2)
+        if not success:
+            raise RuntimeError(f"Vectorstore batch upload failed after 3 attempts: {last_err}")
             
         time.sleep(0.5)
 
@@ -337,6 +349,12 @@ Guidelines:
   Do NOT invent numbers or draw on external knowledge.
 - For financial metrics (revenue, PAT, EBITDA, margins), always include the fiscal year / period.
 - Respond in clear, structured prose. Use bullet points for lists of risks or objects of issue.
+
+Table & Formatting Guidelines for Narrow Chat Sidepanel:
+- Keep tables compact with at most 3 to 4 columns (e.g. `Fiscal Year | Revenue | YoY Growth`).
+- Every markdown table row MUST be strictly on a single line. NEVER put raw unescaped newlines or bullet points inside table cells `| ... |`.
+- If explaining calculations, derivations, or adjustments, place them as bullet points BELOW the table under a "Notes & Derivations" subheading.
+- If comparing several metrics across periods, prefer a clean key-value card or bullet format if a table would be too crowded for a narrow window.
 
 CONTEXT FROM RHP:
 {context}"""

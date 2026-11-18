@@ -36,6 +36,8 @@ SEBI_RHPs/
 # ── Local analysis cache (replaced by Supabase) ──────────────────────────────
 ipo_analysis_cache/
 analysis_results/
+parsed_chunks_cache/
+scratch/
 
 # ── IDE / editor ─────────────────────────────────────────────────────────────
 .idea/

@@ -379,13 +379,27 @@ def get_llm(
 
     if resolved_provider == "mistral" and ChatOpenAI is not None:
         logging.info(f"[tools.get_llm] Routing to Mistral ({resolved_model})")
-        return ChatOpenAI(
+        mistral_inst = ChatOpenAI(
             base_url="https://api.mistral.ai/v1",
             api_key=mistral_key,
             model=resolved_model,
             temperature=temperature,
             **kwargs
         )
+        if gemini_key and ChatGoogleGenerativeAI is not None:
+            try:
+                validated_gemini = _validate_gemini_key(gemini_key)
+                gemini_fallback = ChatGoogleGenerativeAI(
+                    model=GEMINI_EXTRACTION_MODEL,
+                    google_api_key=validated_gemini,
+                    temperature=temperature,
+                    **kwargs
+                )
+                logging.info(f"[tools.get_llm] Attached Gemini ({GEMINI_EXTRACTION_MODEL}) as fallback for Mistral")
+                return mistral_inst.with_fallbacks([gemini_fallback])
+            except Exception as e:
+                logging.warning(f"[tools.get_llm] Could not attach Gemini fallback: {e}")
+        return mistral_inst
 
     # ── Final Resort Fallbacks ──
     openrouter_key = os.getenv("OPENROUTER_API_KEY")

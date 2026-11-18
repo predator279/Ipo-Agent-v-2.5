@@ -93,7 +93,14 @@ def run_nightly():
                     if db_status == "Past" and nse_status in ["Current", "Upcoming"]:
                         print(f"[{ipo_name}] ANOMALY: DB says Past, but NSE says {nse_status}. Skipping auto-reopen.")
                         continue
-                        
+
+                    # IPO has transitioned from active → Past: unprotect so eviction can clean it up
+                    if db_status in ["Current", "Upcoming"] and nse_status == "Past":
+                        print(f"[{ipo_name}] Transitioned to Past. Unprotecting for eviction eligibility.")
+                        nse_meta = row.fillna("").to_dict()
+                        register_ipo_cached(ipo_name, symbol, "Past", protected=False, qdrant_collection=q_col, nse_metadata=nse_meta)
+                        continue
+
                     if db_status == "Past" and nse_status == "Past":
                         if not db_meta:
                             print(f"[{ipo_name}] Backfilling missing nse_metadata for Past IPO.")
@@ -161,8 +168,9 @@ def run_nightly():
                 try:
                     print(f"[{ipo_name}] Running Sentiment Analysis...")
                     from sentiment_agent import analyze_sentiment
+                    from ipo_extractor import format_sentiment_data
                     sentiment_dict = analyze_sentiment(ipo_name)
-                    profile_dict["sentiment"] = sentiment_dict
+                    profile_dict["sentiment"] = format_sentiment_data(sentiment_dict)
                 except Exception as e:
                     print(f"[{ipo_name}] Failed to run sentiment analysis: {e}")
                 
@@ -171,7 +179,7 @@ def run_nightly():
                 profile_dict = _inject_metrics(profile_dict, row, nse_status)
                 save_profile(ipo_name, symbol, profile_dict)
                 nse_meta = row.fillna("").to_dict()
-                register_ipo_cached(ipo_name, symbol, nse_status, protected=True, nse_metadata=nse_meta)
+                register_ipo_cached(ipo_name, symbol, nse_status, protected=False, nse_metadata=nse_meta)
                 print(f"[{ipo_name}] Processing and caching successful.")
             else:
                 print(f"[{ipo_name}] Extraction failed, did not save to Supabase.")

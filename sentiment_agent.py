@@ -217,7 +217,7 @@ def _scrape_gmp_investorgain(ipo_name: str) -> Optional[str]:
     Scrapes live GMP data from investorgain.com — the most reliable source
     for Indian IPO grey market premiums.
 
-    Returns a string like "₹45 (~12%)" or None if not found.
+    Returns a string like "₹45 (12.0%)" or None if not found / not yet available.
     """
     try:
         headers = {
@@ -234,32 +234,83 @@ def _scrape_gmp_investorgain(ipo_name: str) -> Optional[str]:
         )
         resp.raise_for_status()
         soup = BeautifulSoup(resp.text, "html.parser")
+        table = soup.find("table")
+        if not table:
+            return None
 
-        # The page has a table — search for the IPO name (partial match)
-        name_lower = ipo_name.lower().split()[0]  # use first word to be fuzzy
-        for row in soup.find_all("tr"):
+        # Dynamically determine column indices from header row
+        header_row = table.find("tr")
+        col_gmp = 1
+        col_price = 4
+        if header_row:
+            ths = [th.get_text(" ", strip=True).lower() for th in header_row.find_all(["th", "td"])]
+            for idx, h in enumerate(ths):
+                if "gmp" in h and "rating" not in h:
+                    col_gmp = idx
+                elif "price" in h:
+                    col_price = idx
+
+        # Distinctive tokens from IPO name to search for
+        def _tokenize(text: str) -> List[str]:
+            t = re.sub(r"\(.*?\)", " ", text.lower())
+            t = re.sub(r"[^\w\s]", " ", t)
+            stopwords = {"limited", "ltd", "pvt", "private", "india", "indian", "corporation",
+                         "company", "enterprises", "industries", "services", "solutions",
+                         "technologies", "ipo", "the", "bse", "nse", "sme"}
+            return [w for w in t.split() if w not in stopwords]
+
+        query_tokens = set(_tokenize(ipo_name))
+        distinctive = [t for t in _tokenize(ipo_name) if len(t) >= 4]
+
+        best_cells = None
+        max_score = 0.0
+
+        for row in table.find_all("tr")[1:]:
             cells = row.find_all("td")
-            if len(cells) < 4:
+            if len(cells) <= max(col_gmp, col_price):
                 continue
-            row_text = cells[0].get_text(" ", strip=True).lower()
-            if name_lower not in row_text:
+            row_company = cells[0].get_text(" ", strip=True)
+            row_tokens = set(_tokenize(row_company))
+
+            overlap = query_tokens & row_tokens
+            if not overlap:
                 continue
 
-            # columns: Company | Price | GMP | Est Listing | ...
-            gmp_text = cells[2].get_text(" ", strip=True).strip()
-            price_text = cells[1].get_text(" ", strip=True).strip()
+            score = float(len(overlap))
+            if distinctive and distinctive[0] in row_tokens:
+                score += 1.5
 
-            if gmp_text and gmp_text not in ("-", "0", "N/A", ""):
-                # Try to compute percentage
-                try:
-                    gmp_val   = float(re.sub(r"[^\d.\-]", "", gmp_text))
-                    price_val = float(re.sub(r"[^\d.]", "", price_text))
-                    if price_val > 0:
-                        pct = round(gmp_val / price_val * 100, 1)
-                        return f"₹{gmp_val:g} ({pct:+.1f}%)"
-                except Exception:
-                    pass
-                return f"₹{gmp_text}"
+            if score > max_score:
+                max_score = score
+                best_cells = cells
+
+        if not best_cells:
+            print(f"   ⚠️  InvestorGain: '{ipo_name}' not found in GMP table.")
+            return None
+
+        gmp_raw = best_cells[col_gmp].get_text(" ", strip=True)
+        price_raw = best_cells[col_price].get_text(" ", strip=True)
+
+        # Skip empty, placeholder, or dashes (e.g. "₹ -- (0.00%) 0 ↓ / 0 ↑")
+        if not gmp_raw or "--" in gmp_raw or gmp_raw in ("-", "0", "N/A", ""):
+            return None
+
+        # Parse value and percentage: e.g. "₹ 33 (24.63%) 32 ↓ / 37 ↑" or "₹ -3 (-3.57%)"
+        m = re.search(r"₹?\s*(-?\d+(?:\.\d+)?)\s*(?:\(([^)]+)\))?", gmp_raw)
+        if not m:
+            return None
+
+        val = m.group(1)
+        pct = m.group(2)
+        if pct:
+            return f"₹{val} ({pct})"
+
+        p_m = re.search(r"(\d+(?:\.\d+)?)", price_raw.replace(",", ""))
+        if p_m and float(p_m.group(1)) > 0:
+            pct_calc = round(float(val) / float(p_m.group(1)) * 100, 1)
+            return f"₹{val} ({pct_calc:+.1f}%)"
+
+        return f"₹{val}"
 
         print(f"   ⚠️  InvestorGain: '{ipo_name}' not found in GMP table.")
         return None
@@ -461,6 +512,12 @@ def analyze_sentiment(ipo_name: str) -> Dict[str, Any]:
         result["gmp"] = direct_gmp  # authoritative value wins
     elif not result.get("gmp"):
         result["gmp"] = None        # ensure key always exists
+
+    # Final sanity check: never allow fire emojis or non-numeric strings in gmp
+    if result.get("gmp"):
+        gmp_str = str(result["gmp"]).strip()
+        if "🔥" in gmp_str or not re.search(r"\d", gmp_str):
+            result["gmp"] = None
 
     # ── attach metadata ───────────────────────────────────────────────────────
     result["sources_used"] = sources_used
